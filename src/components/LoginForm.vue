@@ -18,33 +18,6 @@
               <div v-if="errors.username" class="text-danger">{{ errors.username }}</div>
             </div>
             <div class="col-12 col-md-6">
-              <label for="password" class="form-label">Password</label>
-              <input
-                type="password"
-                class="form-control"
-                id="password"
-                @blur="() => validatePassword(true)"
-                @input="() => validatePassword(false)"
-                v-model="formData.password"
-              />
-              <div v-if="errors.password" class="text-danger">{{ errors.password }}</div>
-            </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-12 col-md-6">
-              <div class="form-check">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  id="isAustralian"
-                  v-model="formData.isAustralian"
-                  @blur="() => validateAustralian(true)"
-                />
-                <label class="form-check-label" for="isAustralian">Australian Resident?</label>
-                <div v-if="errors.isAustralian" class="text-danger">{{ errors.isAustralian }}</div>
-              </div>
-            </div>
-            <div class="col-12 col-md-6">
               <label for="gender" class="form-label">Gender</label>
               <select
                 class="form-select"
@@ -58,6 +31,50 @@
                 <option value="other">Other</option>
               </select>
               <div v-if="errors.gender" class="text-danger">{{ errors.gender }}</div>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <label for="password" class="form-label">Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="password"
+                @blur="() => validatePassword(true)"
+                @input="() => validatePassword(false)"
+                v-model="formData.password"
+              />
+              <div v-if="errors.password" class="text-danger">{{ errors.password }}</div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label for="confirmPassword" class="form-label">Confirm Password</label>
+              <input
+                type="password"
+                class="form-control"
+                id="confirmPassword"
+                @blur="() => validateConfirmPassword(true)"
+                @input="() => validateConfirmPassword(false)"
+                v-model="formData.confirmPassword"
+              />
+              <div v-if="errors.confirmPassword" class="text-danger">
+                {{ errors.confirmPassword }}
+              </div>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-12 col-md-6">
+              <div class="form-check">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  id="isAustralian"
+                  v-model="formData.isAustralian"
+                />
+                <label class="form-check-label" for="isAustralian">Australian Resident?</label>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <!-- 空列用于对齐 -->
             </div>
           </div>
           <div class="mb-3">
@@ -106,9 +123,13 @@
 // Vue Logic
 import { ref } from 'vue'
 
+// Emit events to parent component
+const emit = defineEmits(['login'])
+
 const formData = ref({
   username: '',
   password: '',
+  confirmPassword: '',
   isAustralian: false,
   reason: '',
   gender: '',
@@ -119,6 +140,7 @@ const submittedCards = ref([])
 const errors = ref({
   username: null,
   password: null,
+  confirmPassword: null,
   isAustralian: null,
   gender: null,
   reason: null,
@@ -127,18 +149,25 @@ const errors = ref({
 const submitForm = () => {
   validateName(true)
   validatePassword(true)
-  validateAustralian(true)
+  validateConfirmPassword(true)
+  validateAustralian()
   validateGender(true)
   validateReason(true)
 
   if (
     !errors.value.username &&
     !errors.value.password &&
+    !errors.value.confirmPassword &&
     !errors.value.isAustralian &&
     !errors.value.gender &&
     !errors.value.reason
   ) {
     submittedCards.value.push({ ...formData.value })
+    // 触发登录事件
+    emit('login', {
+      username: formData.value.username,
+      email: formData.value.username + '@example.com',
+    })
     clearForm()
   }
 }
@@ -147,6 +176,7 @@ const clearForm = () => {
   formData.value = {
     username: '',
     password: '',
+    confirmPassword: '',
     isAustralian: false,
     reason: '',
     gender: '',
@@ -184,12 +214,17 @@ const validatePassword = (blur) => {
   }
 }
 
-const validateAustralian = (blur) => {
-  if (!formData.value.isAustralian) {
-    if (blur) errors.value.isAustralian = 'Please confirm if you are an Australian resident.'
+const validateConfirmPassword = (blur) => {
+  if (formData.value.password !== formData.value.confirmPassword) {
+    if (blur) errors.value.confirmPassword = 'Passwords do not match.'
   } else {
-    errors.value.isAustralian = null
+    errors.value.confirmPassword = null
   }
+}
+
+const validateAustralian = () => {
+  // 澳洲居民选项不再是必填的，用户可以选择或不选择
+  errors.value.isAustralian = null
 }
 
 const validateGender = (blur) => {

@@ -13,8 +13,29 @@ const isLoggedIn = ref(false)
 const currentUser = ref({ username: 'Guest' })
 const lang = ref('zh')
 
+// Navigation history and index
+const navigationHistory = ref(['home'])
+const currentHistoryIndex = ref(0)
+
 // Navigation handler
 const handleNavigation = (page) => {
+  // 检查需要登录的页面
+  const protectedPages = ['health', 'resources', 'forum', 'appointments']
+
+  if (protectedPages.includes(page) && !isLoggedIn.value) {
+    alert('请先登录才能使用此功能！')
+    currentPage.value = 'login'
+    return
+  }
+
+  // 如果不是通过后退/前进按钮导航，则更新历史记录
+  if (page !== 'back' && page !== 'forward') {
+    // 移除当前位置之后的历史记录
+    navigationHistory.value = navigationHistory.value.slice(0, currentHistoryIndex.value + 1)
+    // 添加新页面到历史记录
+    navigationHistory.value.push(page)
+    currentHistoryIndex.value = navigationHistory.value.length - 1
+  }
   currentPage.value = page
 }
 
