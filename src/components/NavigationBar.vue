@@ -69,6 +69,28 @@
               {{ texts.appointments }}
             </a>
           </li>
+          <li v-if="isAdmin" class="nav-item">
+            <a
+              class="nav-link"
+              :class="{ active: currentPage === 'admin' }"
+              href="#"
+              @click="navigateTo('admin')"
+            >
+              <i class="fas fa-user-shield me-1"></i>
+              {{ texts.admin }}
+            </a>
+          </li>
+          <li v-if="isUser" class="nav-item">
+            <a
+              class="nav-link"
+              :class="{ active: currentPage === 'userManagement' }"
+              href="#"
+              @click="navigateTo('userManagement')"
+            >
+              <i class="fas fa-users me-1"></i>
+              {{ texts.userManagement }}
+            </a>
+          </li>
         </ul>
 
         <!-- User authentication section -->
@@ -116,11 +138,45 @@
               aria-expanded="false"
             >
               <div class="user-avatar me-2">
-                <i class="fas fa-user-circle text-primary"></i>
+                <i
+                  :class="
+                    isAdmin ? 'fas fa-user-shield text-warning' : 'fas fa-user-circle text-primary'
+                  "
+                ></i>
               </div>
-              <span class="user-name">{{ currentUser.username }}</span>
+              <div class="user-info">
+                <span class="user-name">{{ currentUser.username }}</span>
+                <small class="user-role" :class="isAdmin ? 'text-warning' : 'text-muted'">
+                  {{ isAdmin ? '管理员' : '普通用户' }}
+                </small>
+              </div>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li class="dropdown-header">
+                <div class="user-details">
+                  <div class="fw-bold">{{ currentUser.username }}</div>
+                  <small class="text-muted">{{ currentUser.email }}</small>
+                  <div>
+                    <span :class="isAdmin ? 'badge bg-warning' : 'badge bg-primary'">
+                      {{ isAdmin ? '管理员' : '普通用户' }}
+                    </span>
+                  </div>
+                </div>
+              </li>
+              <li><hr class="dropdown-divider" /></li>
+              <li v-if="isAdmin">
+                <a class="dropdown-item" href="#" @click="navigateTo('admin')">
+                  <i class="fas fa-shield-alt me-2"></i>
+                  {{ texts.admin }}
+                </a>
+              </li>
+              <li v-if="isAdmin">
+                <a class="dropdown-item" href="#" @click="navigateTo('user-management')">
+                  <i class="fas fa-users-cog me-2"></i>
+                  {{ texts.userManagement }}
+                </a>
+              </li>
+              <li v-if="isAdmin"><hr class="dropdown-divider" /></li>
               <li>
                 <a class="dropdown-item" href="#" @click="navigateTo('profile')">
                   <i class="fas fa-user me-2"></i>
@@ -165,12 +221,26 @@ const props = defineProps({
   },
   currentUser: {
     type: Object,
-    default: () => ({ username: 'Guest' }),
+    default: () => ({
+      username: 'Guest',
+      role: 'guest',
+      email: '',
+      permissions: [],
+    }),
   },
   lang: {
     type: String,
     default: 'zh',
   },
+})
+
+// 权限检查
+const isAdmin = computed(() => {
+  return props.isLoggedIn && props.currentUser.role === 'admin'
+})
+
+const isUser = computed(() => {
+  return props.isLoggedIn && props.currentUser.role === 'user'
 })
 
 // 多语言文本
@@ -181,6 +251,8 @@ const texts = computed(() => {
       resources: '资源查找',
       forum: '社区论坛',
       appointments: '预约管理',
+      admin: '管理面板',
+      userManagement: '用户管理',
       login: '登录',
       register: '注册',
       profile: '个人资料',
@@ -192,6 +264,8 @@ const texts = computed(() => {
       resources: 'Find Resources',
       forum: 'Community',
       appointments: 'Appointments',
+      admin: 'Admin Panel',
+      userManagement: 'User Management',
       login: 'Login',
       register: 'Register',
       profile: 'Profile',
@@ -263,9 +337,42 @@ const switchLang = (newLang) => {
   font-size: 1.8rem;
 }
 
+.user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
 .user-name {
   font-weight: 500;
   color: #495057;
+  margin: 0;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.user-details {
+  padding: 0.25rem 0;
+  text-align: center;
+  min-width: 200px;
+}
+
+.user-details .fw-bold {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.user-details small {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.user-details .badge {
+  font-size: 0.7rem;
 }
 
 .dropdown-menu {

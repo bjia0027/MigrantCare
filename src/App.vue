@@ -10,17 +10,98 @@ import AppointmentManager from './components/AppointmentManager.vue'
 // Application state
 const currentPage = ref('home')
 const isLoggedIn = ref(false)
-const currentUser = ref({ username: 'Guest' })
+const currentUser = ref({
+  username: 'Guest',
+  role: 'guest', // 'user', 'admin', 'guest'
+  email: '',
+  permissions: [],
+})
 const lang = ref('zh')
+
+// 预定义的管理员账户和用户数据
+const adminAccount = {
+  username: 'admin',
+  password: 'Admin123!',
+  role: 'admin',
+  email: 'admin@migrantcare.com',
+  permissions: ['manage_users', 'manage_content', 'view_analytics', 'system_settings'],
+}
+
+const regularUsers = ref([
+  {
+    username: 'testuser',
+    password: 'Test123!',
+    role: 'user',
+    email: 'test@example.com',
+    permissions: ['view_content', 'create_posts'],
+  },
+])
+
+// 管理员数据
+const systemStats = ref({
+  totalUsers: 15247,
+  totalPosts: 3892,
+  totalAppointments: 8574,
+  systemHealth: '正常',
+})
+
+const userList = ref([
+  {
+    id: 1,
+    username: 'user1',
+    email: 'user1@example.com',
+    role: 'user',
+    status: '活跃',
+    joinDate: '2024-01-15',
+  },
+  {
+    id: 2,
+    username: 'user2',
+    email: 'user2@example.com',
+    role: 'user',
+    status: '活跃',
+    joinDate: '2024-01-20',
+  },
+  {
+    id: 3,
+    username: 'user3',
+    email: 'user3@example.com',
+    role: 'user',
+    status: '已停用',
+    joinDate: '2024-02-01',
+  },
+])
 
 // Navigation history and index
 const navigationHistory = ref(['home'])
 const currentHistoryIndex = ref(0)
 
+// 权限检查函数
+const hasPermission = (permission) => {
+  if (!isLoggedIn.value) return false
+  if (currentUser.value.role === 'admin') return true // 管理员拥有所有权限
+  return currentUser.value.permissions?.includes(permission) || false
+}
+
+const isAdmin = computed(() => {
+  return isLoggedIn.value && currentUser.value.role === 'admin'
+})
+
+const isUser = computed(() => {
+  return isLoggedIn.value && currentUser.value.role === 'user'
+})
+
 // Navigation handler
 const handleNavigation = (page) => {
   // 检查需要登录的页面
   const protectedPages = ['health', 'resources', 'forum', 'appointments']
+  const adminPages = ['admin', 'user-management', 'system-settings']
+
+  // 检查管理员页面权限
+  if (adminPages.includes(page) && !isAdmin.value) {
+    alert('您没有访问此页面的权限！')
+    return
+  }
 
   if (protectedPages.includes(page) && !isLoggedIn.value) {
     alert('请先登录才能使用此功能！')
@@ -86,16 +167,77 @@ const texts = computed(() => {
 })
 
 // Authentication handlers
-const handleLogin = (userData) => {
-  isLoggedIn.value = true
-  currentUser.value = userData
-  currentPage.value = 'home'
+const handleLogin = (loginData) => {
+  const { username, password, loginType } = loginData
+
+  // 检查管理员登录
+  if (loginType === 'admin') {
+    if (username === adminAccount.username && password === adminAccount.password) {
+      isLoggedIn.value = true
+      currentUser.value = {
+        username: adminAccount.username,
+        email: adminAccount.email,
+        role: adminAccount.role,
+        permissions: adminAccount.permissions,
+      }
+      currentPage.value = 'admin'
+      return
+    } else {
+      alert('管理员用户名或密码错误！')
+      return
+    }
+  }
+
+  // 检查普通用户登录
+  const user = regularUsers.value.find((u) => u.username === username && u.password === password)
+  if (user) {
+    isLoggedIn.value = true
+    currentUser.value = {
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      permissions: user.permissions,
+    }
+    currentPage.value = 'home'
+  } else {
+    // 如果是注册的新用户数据
+    if (loginData.isNewUser) {
+      isLoggedIn.value = true
+      currentUser.value = {
+        username: loginData.username,
+        email: loginData.email || loginData.username + '@example.com',
+        role: 'user',
+        permissions: ['view_content', 'create_posts'],
+      }
+      currentPage.value = 'home'
+    } else {
+      alert('用户名或密码错误！')
+    }
+  }
 }
 
 const handleLogout = () => {
   isLoggedIn.value = false
-  currentUser.value = { username: 'Guest' }
+  currentUser.value = {
+    username: 'Guest',
+    role: 'guest',
+    email: '',
+    permissions: [],
+  }
   currentPage.value = 'home'
+}
+
+// 管理员功能函数
+const updateUserStatus = (userId, newStatus) => {
+  const user = userList.value.find((u) => u.id === userId)
+  if (user) {
+    user.status = newStatus
+  }
+}
+
+const deleteUser = (userId) => {
+  userList.value = userList.value.filter((u) => u.id !== userId)
+  systemStats.value.totalUsers -= 1
 }
 </script>
 
@@ -290,6 +432,186 @@ const handleLogout = () => {
           </div>
         </div>
       </div>
+
+      <!-- Admin Panel -->
+      <div v-else-if="currentPage === 'admin'" class="admin-page">
+        <div class="container mt-5">
+          <div class="row">
+            <div class="col-12">
+              <div class="admin-header mb-4">
+                <h1 class="display-4 text-primary">
+                  <i class="fas fa-shield-alt me-3"></i>
+                  管理员控制面板
+                </h1>
+                <p class="lead">
+                  欢迎回来，{{ currentUser.username }}！系统运行状态：{{ systemStats.systemHealth }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 系统统计卡片 -->
+          <div class="row mb-5">
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="admin-stat-card">
+                <div class="stat-icon text-primary">
+                  <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-content">
+                  <h3>{{ systemStats.totalUsers.toLocaleString() }}</h3>
+                  <p>注册用户</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="admin-stat-card">
+                <div class="stat-icon text-success">
+                  <i class="fas fa-comments"></i>
+                </div>
+                <div class="stat-content">
+                  <h3>{{ systemStats.totalPosts.toLocaleString() }}</h3>
+                  <p>社区帖子</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="admin-stat-card">
+                <div class="stat-icon text-warning">
+                  <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                  <h3>{{ systemStats.totalAppointments.toLocaleString() }}</h3>
+                  <p>预约记录</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <div class="admin-stat-card">
+                <div class="stat-icon text-info">
+                  <i class="fas fa-server"></i>
+                </div>
+                <div class="stat-content">
+                  <h3>{{ systemStats.systemHealth }}</h3>
+                  <p>系统状态</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 管理员功能菜单 -->
+          <div class="row">
+            <div class="col-md-4 mb-4">
+              <div class="admin-feature-card" @click="handleNavigation('user-management')">
+                <div class="feature-icon text-primary">
+                  <i class="fas fa-users-cog"></i>
+                </div>
+                <h4>用户管理</h4>
+                <p>管理用户账户、权限和状态</p>
+              </div>
+            </div>
+            <div class="col-md-4 mb-4">
+              <div class="admin-feature-card" @click="handleNavigation('content-management')">
+                <div class="feature-icon text-success">
+                  <i class="fas fa-edit"></i>
+                </div>
+                <h4>内容管理</h4>
+                <p>管理系统内容、公告和资源</p>
+              </div>
+            </div>
+            <div class="col-md-4 mb-4">
+              <div class="admin-feature-card" @click="handleNavigation('system-settings')">
+                <div class="feature-icon text-warning">
+                  <i class="fas fa-cogs"></i>
+                </div>
+                <h4>系统设置</h4>
+                <p>配置系统参数和安全设置</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Management Page -->
+      <div v-else-if="currentPage === 'user-management'" class="user-management-page">
+        <div class="container mt-5">
+          <div class="row">
+            <div class="col-12">
+              <div class="management-header mb-4">
+                <h2>
+                  <i class="fas fa-users-cog me-2"></i>
+                  用户管理
+                </h2>
+                <button class="btn btn-secondary" @click="handleNavigation('admin')">
+                  <i class="fas fa-arrow-left me-1"></i>
+                  返回控制面板
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 用户列表 -->
+          <div class="row">
+            <div class="col-12">
+              <div class="user-table-card">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead class="table-dark">
+                      <tr>
+                        <th>用户ID</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>注册日期</th>
+                        <th>操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="user in userList" :key="user.id">
+                        <td>{{ user.id }}</td>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                          <span class="badge bg-primary">{{
+                            user.role === 'user' ? '普通用户' : '管理员'
+                          }}</span>
+                        </td>
+                        <td>
+                          <span
+                            :class="user.status === '活跃' ? 'badge bg-success' : 'badge bg-danger'"
+                          >
+                            {{ user.status }}
+                          </span>
+                        </td>
+                        <td>{{ user.joinDate }}</td>
+                        <td>
+                          <button
+                            v-if="user.status === '活跃'"
+                            class="btn btn-sm btn-warning me-1"
+                            @click="updateUserStatus(user.id, '已停用')"
+                          >
+                            停用
+                          </button>
+                          <button
+                            v-else
+                            class="btn btn-sm btn-success me-1"
+                            @click="updateUserStatus(user.id, '活跃')"
+                          >
+                            启用
+                          </button>
+                          <button class="btn btn-sm btn-danger" @click="deleteUser(user.id)">
+                            删除
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- Footer -->
@@ -399,6 +721,100 @@ const handleLogout = () => {
   margin-top: auto;
 }
 
+/* Admin Panel Styles */
+.admin-header {
+  text-align: center;
+  padding: 2rem 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+}
+
+.admin-stat-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+  height: 100%;
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.stat-content h3 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.stat-content p {
+  color: #6c757d;
+  margin: 0;
+}
+
+.admin-feature-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+  height: 100%;
+}
+
+.admin-feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 0;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.user-table-card {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.table {
+  margin-bottom: 0;
+}
+
+.table th {
+  background-color: #2c3e50 !important;
+  color: white !important;
+  border: none;
+  padding: 1rem;
+}
+
+.table td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .welcome-section {
@@ -420,6 +836,25 @@ const handleLogout = () => {
 
   .stat-number {
     font-size: 2rem;
+  }
+
+  .admin-header {
+    padding: 1.5rem 1rem;
+  }
+
+  .management-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .admin-stat-card,
+  .admin-feature-card {
+    margin-bottom: 1rem;
+  }
+
+  .table-responsive {
+    border-radius: 1rem;
   }
 }
 </style>
