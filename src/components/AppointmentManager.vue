@@ -1,144 +1,157 @@
 <template>
   <div class="appointment-manager">
     <div class="container mt-4">
-      <!-- Header Section -->
-      <div class="row mb-5">
+      <!-- 页面标题 -->
+      <div class="row mb-4">
         <div class="col-12">
           <div class="page-header text-center">
             <h1 class="display-4 text-primary mb-3">
-              <i class="fas fa-calendar-alt me-3"></i>
-              预约管理中心
+              {{ texts.appointmentManager }}
             </h1>
-            <p class="lead text-muted">管理您的医疗预约，健康检查和疫苗接种安排</p>
+            <p class="lead text-muted">{{ texts.manageDesc }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Quick Actions -->
-      <div class="row mb-5">
-        <div class="col-md-4 mb-3">
-          <div class="action-card" @click="showCreateAppointment = true">
-            <div class="action-icon">
-              <i class="fas fa-plus text-primary"></i>
-            </div>
-            <h5>预约新服务</h5>
-            <p>安排医疗检查、疫苗接种等服务</p>
+      <!-- 快速统计 -->
+      <div class="row mb-4">
+        <div class="col-md-4 col-sm-6 mb-3">
+          <div class="stat-card text-center">
+            <div class="stat-icon text-primary mb-2"></div>
+            <h4>{{ upcomingAppointments.length }}</h4>
+            <p class="text-muted">{{ texts.upcomingAppointments }}</p>
           </div>
         </div>
-        <div class="col-md-4 mb-3">
-          <div class="action-card" @click="viewMode = 'upcoming'">
-            <div class="action-icon">
-              <i class="fas fa-clock text-warning"></i>
-            </div>
-            <h5>即将到来</h5>
-            <p>查看即将进行的预约安排</p>
+        <div class="col-md-4 col-sm-6 mb-3">
+          <div class="stat-card text-center">
+            <div class="stat-icon text-warning mb-2"></div>
+            <h4>{{ todayAppointments.length }}</h4>
+            <p class="text-muted">{{ texts.todayAppointments }}</p>
           </div>
         </div>
-        <div class="col-md-4 mb-3">
-          <div class="action-card" @click="viewMode = 'history'">
-            <div class="action-icon">
-              <i class="fas fa-history text-info"></i>
-            </div>
-            <h5>历史记录</h5>
-            <p>查看过往的预约和检查记录</p>
+        <div class="col-md-4 col-sm-6 mb-3">
+          <div class="stat-card text-center">
+            <div class="stat-icon text-info mb-2"></div>
+            <h4>{{ completedAppointments.length }}</h4>
+            <p class="text-muted">{{ texts.completedAppointments }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Create Appointment Modal -->
-      <div class="row mb-5" v-if="showCreateAppointment">
+      <!-- 预约操作区 -->
+      <div class="row mb-4">
         <div class="col-12">
-          <div class="appointment-form-card">
-            <h4 class="mb-4">
-              <i class="fas fa-calendar-plus me-2"></i>
-              创建新预约
-            </h4>
-            <form @submit.prevent="createAppointment">
+          <div class="appointment-actions">
+            <button class="btn btn-primary me-2" @click="showNewAppointmentForm = true">
+              {{ texts.newAppointment }}
+            </button>
+            <div class="btn-group" role="group">
+              <button
+                class="btn"
+                :class="activeTab === 'upcoming' ? 'btn-info' : 'btn-outline-info'"
+                @click="activeTab = 'upcoming'"
+              >
+                {{ texts.upcoming }}
+              </button>
+              <button
+                class="btn"
+                :class="activeTab === 'today' ? 'btn-warning' : 'btn-outline-warning'"
+                @click="activeTab = 'today'"
+              >
+                {{ texts.today }}
+              </button>
+              <button
+                class="btn"
+                :class="activeTab === 'completed' ? 'btn-success' : 'btn-outline-success'"
+                @click="activeTab = 'completed'"
+              >
+                {{ texts.completed }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 新预约表单 -->
+      <div class="row mb-4" v-if="showNewAppointmentForm">
+        <div class="col-12">
+          <div class="appointment-form">
+            <h5>{{ texts.scheduleNewAppointment }}</h5>
+            <form @submit.prevent="submitAppointment">
               <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="appointmentType" class="form-label">预约类型</label>
-                  <select
-                    class="form-select"
-                    id="appointmentType"
-                    v-model="newAppointment.type"
-                    required
-                  >
-                    <option value="">请选择服务类型</option>
-                    <option value="general">全科医生</option>
-                    <option value="specialist">专科医生</option>
-                    <option value="vaccine">疫苗接种</option>
-                    <option value="medical-exam">移民体检</option>
-                    <option value="dental">牙科检查</option>
-                    <option value="eye">眼科检查</option>
-                  </select>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">{{ texts.doctorName }}</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      v-model="newAppointment.doctor"
+                      required
+                    />
+                  </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label for="provider" class="form-label">医疗机构</label>
-                  <select
-                    class="form-select"
-                    id="provider"
-                    v-model="newAppointment.provider"
-                    required
-                  >
-                    <option value="">请选择医疗机构</option>
-                    <option value="royal-melbourne">墨尔本皇家医院</option>
-                    <option value="family-clinic">家庭医疗中心</option>
-                    <option value="city-medical">市中心医疗诊所</option>
-                    <option value="vaccination-hub">疫苗接种中心</option>
-                  </select>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">{{ texts.appointmentType }}</label>
+                    <select class="form-select" v-model="newAppointment.type" required>
+                      <option value="">{{ texts.selectType }}</option>
+                      <option value="checkup">{{ texts.generalCheckup }}</option>
+                      <option value="consultation">{{ texts.consultation }}</option>
+                      <option value="followup">{{ texts.followUp }}</option>
+                      <option value="specialist">{{ texts.specialist }}</option>
+                    </select>
+                  </div>
                 </div>
               </div>
               <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label for="appointmentDate" class="form-label">预约日期</label>
-                  <input
-                    type="date"
-                    class="form-control"
-                    id="appointmentDate"
-                    v-model="newAppointment.date"
-                    :min="today"
-                    required
-                  />
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">{{ texts.appointmentDate }}</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      v-model="newAppointment.date"
+                      :min="today"
+                      required
+                    />
+                  </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label for="appointmentTime" class="form-label">预约时间</label>
-                  <select
-                    class="form-select"
-                    id="appointmentTime"
-                    v-model="newAppointment.time"
-                    required
-                  >
-                    <option value="">请选择时间</option>
-                    <option value="09:00">09:00</option>
-                    <option value="10:00">10:00</option>
-                    <option value="11:00">11:00</option>
-                    <option value="14:00">14:00</option>
-                    <option value="15:00">15:00</option>
-                    <option value="16:00">16:00</option>
-                  </select>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label class="form-label">{{ texts.appointmentTime }}</label>
+                    <input
+                      type="time"
+                      class="form-control"
+                      v-model="newAppointment.time"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
               <div class="mb-3">
-                <label for="notes" class="form-label">备注信息</label>
+                <label class="form-label">{{ texts.location }}</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  v-model="newAppointment.location"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">{{ texts.notes }}</label>
                 <textarea
                   class="form-control"
-                  id="notes"
                   rows="3"
                   v-model="newAppointment.notes"
-                  placeholder="请描述您的症状或需求..."
+                  :placeholder="texts.additionalNotes"
                 ></textarea>
               </div>
               <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary">
-                  <i class="fas fa-check me-1"></i>
-                  确认预约
+                <button type="submit" class="btn btn-success">
+                  {{ texts.confirmAppointment }}
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-secondary"
-                  @click="showCreateAppointment = false"
-                >
-                  取消
+                <button type="button" class="btn btn-secondary" @click="cancelNewAppointment">
+                  {{ texts.cancel }}
                 </button>
               </div>
             </form>
@@ -146,102 +159,80 @@
         </div>
       </div>
 
-      <!-- View Toggle -->
-      <div class="row mb-4">
-        <div class="col-12">
-          <div class="view-toggle">
-            <button
-              class="btn"
-              :class="{
-                'btn-primary': viewMode === 'upcoming',
-                'btn-outline-primary': viewMode !== 'upcoming',
-              }"
-              @click="viewMode = 'upcoming'"
-            >
-              <i class="fas fa-clock me-1"></i>
-              即将到来 ({{ upcomingAppointments.length }})
-            </button>
-            <button
-              class="btn"
-              :class="{
-                'btn-primary': viewMode === 'history',
-                'btn-outline-primary': viewMode !== 'history',
-              }"
-              @click="viewMode = 'history'"
-            >
-              <i class="fas fa-history me-1"></i>
-              历史记录 ({{ historyAppointments.length }})
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Appointments List -->
+      <!-- 预约列表 -->
       <div class="row">
         <div class="col-12">
           <div class="appointments-list">
-            <div
-              class="appointment-card"
-              v-for="appointment in displayedAppointments"
-              :key="appointment.id"
-            >
-              <div class="appointment-header">
-                <div class="appointment-type">
-                  <i class="fas" :class="getTypeIcon(appointment.type)"></i>
-                  <span>{{ getTypeLabel(appointment.type) }}</span>
+            <!-- 即将到来的预约 -->
+            <div v-if="activeTab === 'upcoming'">
+              <h5 class="mb-3">{{ texts.upcomingAppointments }}</h5>
+              <div
+                v-for="appointment in upcomingAppointments"
+                :key="appointment.id"
+                class="appointment-card mb-3"
+              >
+                <div class="appointment-header">
+                  <h6 class="appointment-title">{{ appointment.doctor }}</h6>
+                  <span class="appointment-status badge bg-primary">{{ texts.upcoming }}</span>
                 </div>
-                <span class="badge" :class="getStatusBadgeClass(appointment.status)">
-                  {{ getStatusLabel(appointment.status) }}
-                </span>
-              </div>
-              <div class="appointment-body">
-                <div class="appointment-info">
-                  <h5 class="provider-name">{{ getProviderName(appointment.provider) }}</h5>
-                  <div class="appointment-details">
-                    <div class="detail-item">
-                      <i class="fas fa-calendar text-primary me-2"></i>
-                      <span>{{ formatDate(appointment.date) }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <i class="fas fa-clock text-warning me-2"></i>
-                      <span>{{ appointment.time }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <i class="fas fa-map-marker-alt text-info me-2"></i>
-                      <span>{{ appointment.address }}</span>
-                    </div>
-                    <div class="detail-item" v-if="appointment.notes">
-                      <i class="fas fa-sticky-note text-secondary me-2"></i>
-                      <span>{{ appointment.notes }}</span>
-                    </div>
+                <div class="appointment-details">
+                  <div class="detail-row">
+                    <strong>{{ texts.date }}:</strong> {{ formatDate(appointment.date) }}
+                  </div>
+                  <div class="detail-row">
+                    <strong>{{ texts.time }}:</strong> {{ appointment.time }}
+                  </div>
+                  <div class="detail-row">
+                    <strong>{{ texts.location }}:</strong> {{ appointment.location }}
+                  </div>
+                  <div class="detail-row" v-if="appointment.notes">
+                    <strong>{{ texts.notes }}:</strong> {{ appointment.notes }}
                   </div>
                 </div>
-              </div>
-              <div class="appointment-actions" v-if="appointment.status === 'confirmed'">
-                <button class="btn btn-sm btn-outline-primary me-2">
-                  <i class="fas fa-edit me-1"></i>
-                  修改
-                </button>
-                <button
-                  class="btn btn-sm btn-outline-danger me-2"
-                  @click="cancelAppointment(appointment.id)"
-                >
-                  <i class="fas fa-times me-1"></i>
-                  取消
-                </button>
-                <button class="btn btn-sm btn-outline-info">
-                  <i class="fas fa-directions me-1"></i>
-                  导航
-                </button>
+                <div class="appointment-actions">
+                  <button class="btn btn-sm btn-outline-warning me-2">
+                    {{ texts.edit }}
+                  </button>
+                  <button
+                    class="btn btn-sm btn-outline-danger me-2"
+                    @click="cancelAppointment(appointment.id)"
+                  >
+                    {{ texts.cancel }}
+                  </button>
+                  <button class="btn btn-sm btn-outline-info">
+                    {{ texts.directions }}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- No appointments message -->
-          <div v-if="displayedAppointments.length === 0" class="no-appointments text-center">
-            <i class="fas fa-calendar-times text-muted mb-3"></i>
-            <h4>暂无预约记录</h4>
-            <p class="text-muted">点击"预约新服务"开始安排您的医疗服务</p>
+            <!-- 今日预约 -->
+            <div v-else-if="activeTab === 'today'">
+              <h5 class="mb-3">{{ texts.todayAppointments }}</h5>
+              <div v-if="todayAppointments.length === 0" class="empty-state text-center py-4">
+                <div class="empty-icon mb-3 text-muted"></div>
+                <p class="text-muted">{{ texts.noAppointmentsToday }}</p>
+              </div>
+              <div
+                v-for="appointment in todayAppointments"
+                :key="appointment.id"
+                class="appointment-card mb-3"
+              >
+                <!-- Similar structure as upcoming appointments -->
+              </div>
+            </div>
+
+            <!-- 已完成预约 -->
+            <div v-else-if="activeTab === 'completed'">
+              <h5 class="mb-3">{{ texts.completedAppointments }}</h5>
+              <div
+                v-for="appointment in completedAppointments"
+                :key="appointment.id"
+                class="appointment-card mb-3"
+              >
+                <!-- Similar structure with completed status -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -252,77 +243,134 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-const showCreateAppointment = ref(false)
-const viewMode = ref('upcoming')
-
+// 状态数据
+const showNewAppointmentForm = ref(false)
+const activeTab = ref('upcoming')
 const today = new Date().toISOString().split('T')[0]
 
 const newAppointment = ref({
+  doctor: '',
   type: '',
-  provider: '',
   date: '',
   time: '',
+  location: '',
   notes: '',
 })
 
-// Sample appointments data
+// 预约数据
 const appointments = ref([
   {
     id: 1,
-    type: 'general',
-    provider: 'family-clinic',
-    date: '2024-01-20',
+    doctor: 'Dr. Smith',
+    type: 'checkup',
+    date: '2024-02-15',
     time: '10:00',
+    location: '墨尔本皇家医院',
+    notes: '常规体检',
     status: 'confirmed',
-    address: '123 Collins Street, Melbourne',
-    notes: '年度健康检查',
   },
   {
     id: 2,
-    type: 'vaccine',
-    provider: 'vaccination-hub',
-    date: '2024-01-25',
-    time: '14:00',
+    doctor: 'Dr. Johnson',
+    type: 'consultation',
+    date: '2024-02-20',
+    time: '14:30',
+    location: '家庭医疗中心',
+    notes: '咨询健康问题',
     status: 'confirmed',
-    address: '456 Burke Street, Melbourne',
-    notes: '流感疫苗',
-  },
-  {
-    id: 3,
-    type: 'medical-exam',
-    provider: 'royal-melbourne',
-    date: '2024-01-10',
-    time: '09:00',
-    status: 'completed',
-    address: '300 Grattan Street, Parkville',
-    notes: '移民体检',
   },
 ])
 
+// 计算属性
 const upcomingAppointments = computed(() => {
-  const today = new Date()
-  return appointments.value.filter((apt) => {
-    const aptDate = new Date(apt.date)
-    return aptDate >= today && apt.status === 'confirmed'
-  })
+  const now = new Date()
+  return appointments.value.filter((apt) => new Date(apt.date) >= now && apt.status === 'confirmed')
 })
 
-const historyAppointments = computed(() => {
-  const today = new Date()
-  return appointments.value.filter((apt) => {
-    const aptDate = new Date(apt.date)
-    return aptDate < today || apt.status === 'completed' || apt.status === 'cancelled'
-  })
+const todayAppointments = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return appointments.value.filter((apt) => apt.date === today)
 })
 
-const displayedAppointments = computed(() => {
-  return viewMode.value === 'upcoming' ? upcomingAppointments.value : historyAppointments.value
+const completedAppointments = computed(() => {
+  const now = new Date()
+  return appointments.value.filter((apt) => new Date(apt.date) < now || apt.status === 'completed')
 })
 
-const createAppointment = () => {
+// 多语言文本
+const texts = computed(() => {
+  const translations = {
+    zh: {
+      appointmentManager: '预约管理中心',
+      manageDesc: '管理您的医疗预约，健康检查和疫苗接种安排',
+      upcomingAppointments: '即将到来的预约',
+      todayAppointments: '今日预约',
+      completedAppointments: '已完成预约',
+      newAppointment: '预约新服务',
+      upcoming: '即将到来',
+      today: '今日',
+      completed: '已完成',
+      scheduleNewAppointment: '安排新预约',
+      doctorName: '医生姓名',
+      appointmentType: '预约类型',
+      selectType: '选择类型',
+      generalCheckup: '常规体检',
+      consultation: '咨询',
+      followUp: '复查',
+      specialist: '专科医生',
+      appointmentDate: '预约日期',
+      appointmentTime: '预约时间',
+      location: '地点',
+      notes: '备注',
+      additionalNotes: '请描述您的症状或需求...',
+      confirmAppointment: '确认预约',
+      cancel: '取消',
+      date: '日期',
+      time: '时间',
+      edit: '修改',
+      directions: '导航',
+      noAppointmentsToday: '今天没有预约',
+    },
+    en: {
+      appointmentManager: 'Appointment Manager',
+      manageDesc: 'Manage your medical appointments, health checks and vaccination schedules',
+      upcomingAppointments: 'Upcoming Appointments',
+      todayAppointments: "Today's Appointments",
+      completedAppointments: 'Completed Appointments',
+      newAppointment: 'New Appointment',
+      upcoming: 'Upcoming',
+      today: 'Today',
+      completed: 'Completed',
+      scheduleNewAppointment: 'Schedule New Appointment',
+      doctorName: 'Doctor Name',
+      appointmentType: 'Appointment Type',
+      selectType: 'Select Type',
+      generalCheckup: 'General Checkup',
+      consultation: 'Consultation',
+      followUp: 'Follow-up',
+      specialist: 'Specialist',
+      appointmentDate: 'Appointment Date',
+      appointmentTime: 'Appointment Time',
+      location: 'Location',
+      notes: 'Notes',
+      additionalNotes: 'Please describe your symptoms or requirements...',
+      confirmAppointment: 'Confirm Appointment',
+      cancel: 'Cancel',
+      date: 'Date',
+      time: 'Time',
+      edit: 'Edit',
+      directions: 'Directions',
+      noAppointmentsToday: 'No appointments today',
+    },
+  }
+  return translations['zh'] // 暂时固定为中文，您可以添加lang prop支持
+})
+
+// 功能函数
+const submitAppointment = () => {
   if (
+    newAppointment.value.doctor &&
     newAppointment.value.type &&
-    newAppointment.value.provider &&
     newAppointment.value.date &&
     newAppointment.value.time
   ) {
@@ -330,37 +378,38 @@ const createAppointment = () => {
       id: appointments.value.length + 1,
       ...newAppointment.value,
       status: 'confirmed',
-      address: getProviderAddress(newAppointment.value.provider),
     }
-
     appointments.value.push(appointment)
-
-    // Reset form
-    newAppointment.value = {
-      type: '',
-      provider: '',
-      date: '',
-      time: '',
-      notes: '',
-    }
-    showCreateAppointment.value = false
+    cancelNewAppointment()
+    alert('预约创建成功！')
   }
 }
 
-const cancelAppointment = (id) => {
-  const appointment = appointments.value.find((apt) => apt.id === id)
-  if (appointment) {
-    appointment.status = 'cancelled'
+const cancelNewAppointment = () => {
+  showNewAppointmentForm.value = false
+  newAppointment.value = {
+    doctor: '',
+    type: '',
+    date: '',
+    time: '',
+    location: '',
+    notes: '',
+  }
+}
+
+const cancelAppointment = (appointmentId) => {
+  const index = appointments.value.findIndex((apt) => apt.id === appointmentId)
+  if (index !== -1) {
+    appointments.value[index].status = 'cancelled'
+    alert('预约已取消')
   }
 }
 
 const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN', {
+  return new Date(dateString).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-    weekday: 'long',
   })
 }
 

@@ -1,166 +1,176 @@
 <template>
   <div class="health-info">
     <div class="container mt-4">
-      <!-- Header Section -->
-      <div class="row mb-5">
+      <!-- 页面标题 -->
+      <div class="row mb-4">
         <div class="col-12">
           <div class="page-header text-center">
             <h1 class="display-4 text-primary mb-3">
-              <i class="fas fa-heartbeat me-3"></i>
-              健康信息中心
+              {{ texts.healthInfo }}
             </h1>
-            <p class="lead text-muted">为移民朋友提供全面的健康信息和医疗指导</p>
+            <p class="lead text-muted">{{ texts.healthDesc }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Quick Access Cards -->
+      <!-- 健康服务卡片 -->
       <div class="row mb-5">
-        <div class="col-md-3 col-sm-6 mb-4">
-          <div class="info-card h-100">
-            <div class="card-icon">
-              <i class="fas fa-syringe text-success"></i>
-            </div>
-            <h5>疫苗接种</h5>
-            <p>了解必要的疫苗接种要求和时间安排</p>
-            <a href="#vaccines" class="btn btn-outline-success btn-sm">查看详情</a>
+        <div class="col-md-6 col-lg-3 mb-4">
+          <div class="health-card text-center h-100">
+            <div class="health-icon text-success mb-3"></div>
+            <h5>{{ texts.vaccination }}</h5>
+            <p>{{ texts.vaccinationDesc }}</p>
           </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
-          <div class="info-card h-100">
-            <div class="card-icon">
-              <i class="fas fa-user-md text-primary"></i>
-            </div>
-            <h5>体检指南</h5>
-            <p>移民体检要求和注意事项详细说明</p>
-            <a href="#medical-exam" class="btn btn-outline-primary btn-sm">查看详情</a>
+        <div class="col-md-6 col-lg-3 mb-4">
+          <div class="health-card text-center h-100">
+            <div class="health-icon text-primary mb-3"></div>
+            <h5>{{ texts.healthCheckup }}</h5>
+            <p>{{ texts.healthCheckupDesc }}</p>
           </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
-          <div class="info-card h-100">
-            <div class="card-icon">
-              <i class="fas fa-pills text-warning"></i>
-            </div>
-            <h5>常用药品</h5>
-            <p>在澳洲常见病症的用药指导和购买建议</p>
-            <a href="#medications" class="btn btn-outline-warning btn-sm">查看详情</a>
+        <div class="col-md-6 col-lg-3 mb-4">
+          <div class="health-card text-center h-100">
+            <div class="health-icon text-warning mb-3"></div>
+            <h5>{{ texts.medication }}</h5>
+            <p>{{ texts.medicationDesc }}</p>
           </div>
         </div>
-        <div class="col-md-3 col-sm-6 mb-4">
-          <div class="info-card h-100">
-            <div class="card-icon">
-              <i class="fas fa-phone-alt text-danger"></i>
-            </div>
-            <h5>紧急求助</h5>
-            <p>紧急情况下的求助电话和处理流程</p>
-            <a href="#emergency" class="btn btn-outline-danger btn-sm">查看详情</a>
+        <div class="col-md-6 col-lg-3 mb-4">
+          <div class="health-card text-center h-100">
+            <div class="health-icon text-danger mb-3"></div>
+            <h5>{{ texts.emergency }}</h5>
+            <p>{{ texts.emergencyDesc }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Detailed Information Sections -->
-      <div class="row">
+      <!-- 疫苗接种信息 -->
+      <div class="row mb-5">
         <div class="col-12">
-          <!-- Vaccines Section -->
-          <section id="vaccines" class="info-section mb-5">
-            <h2 class="section-title">
-              <i class="fas fa-syringe me-2"></i>
-              疫苗接种信息
-            </h2>
-            <div class="content-card">
-              <div class="row">
-                <div class="col-md-6">
-                  <h4>必需疫苗</h4>
-                  <ul class="list-group list-group-flush">
-                    <li class="list-group-item">
-                      <strong>COVID-19疫苗</strong> - 根据最新政策要求
-                    </li>
-                    <li class="list-group-item"><strong>流感疫苗</strong> - 每年接种一次</li>
-                    <li class="list-group-item"><strong>MMR疫苗</strong> - 麻疹、腮腺炎、风疹</li>
-                    <li class="list-group-item"><strong>DPT疫苗</strong> - 白喉、百日咳、破伤风</li>
-                  </ul>
-                </div>
-                <div class="col-md-6">
-                  <h4>接种时间表</h4>
-                  <div class="alert alert-info">
-                    <h6>重要提醒</h6>
-                    <p>建议在到达澳洲前完成基础疫苗接种，某些疫苗需要间隔时间接种。</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Medical Exam Section -->
-          <section id="medical-exam" class="info-section mb-5">
-            <h2 class="section-title">
-              <i class="fas fa-user-md me-2"></i>
-              移民体检指南
-            </h2>
-            <div class="content-card">
-              <div class="row">
-                <div class="col-md-8">
-                  <h4>体检项目</h4>
-                  <div class="exam-items">
-                    <div class="exam-item">
-                      <h6><i class="fas fa-check text-success me-2"></i>身体检查</h6>
-                      <p>包括身高、体重、血压、心率等基本指标</p>
-                    </div>
-                    <div class="exam-item">
-                      <h6><i class="fas fa-check text-success me-2"></i>胸部X光</h6>
-                      <p>检查肺部健康状况，排除传染性疾病</p>
-                    </div>
-                    <div class="exam-item">
-                      <h6><i class="fas fa-check text-success me-2"></i>血液检查</h6>
-                      <p>HIV、梅毒、乙肝等传染病检查</p>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-4">
-                  <div class="alert alert-warning">
-                    <h6>注意事项</h6>
-                    <ul class="mb-0">
-                      <li>体检前保持良好状态</li>
-                      <li>携带所有必要文件</li>
-                      <li>体检结果有效期为一年</li>
+          <div class="info-section">
+            <h3 class="section-title mb-4">
+              {{ texts.vaccinationInfo }}
+            </h3>
+            <div class="row">
+              <div class="col-lg-8">
+                <div class="vaccination-details">
+                  <p class="lead">{{ texts.vaccinationLead }}</p>
+                  <p>{{ texts.vaccinationDetails }}</p>
+                  <div class="vaccination-list">
+                    <h5>{{ texts.requiredVaccinations }}</h5>
+                    <ul class="list-group list-group-flush">
+                      <li class="list-group-item d-flex align-items-center">
+                        <span class="me-3">{{ texts.fluVaccine }}</span>
+                      </li>
+                      <li class="list-group-item d-flex align-items-center">
+                        <span class="me-3">{{ texts.covidVaccine }}</span>
+                      </li>
+                      <li class="list-group-item d-flex align-items-center">
+                        <span class="me-3">{{ texts.hepatitisVaccine }}</span>
+                      </li>
                     </ul>
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
-
-          <!-- Emergency Section -->
-          <section id="emergency" class="info-section mb-5">
-            <h2 class="section-title">
-              <i class="fas fa-phone-alt me-2"></i>
-              紧急联系方式
-            </h2>
-            <div class="content-card">
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="emergency-card">
-                    <h4 class="text-danger">紧急电话</h4>
-                    <div class="emergency-number">
-                      <i class="fas fa-phone text-danger me-2"></i>
-                      <span class="number">000</span>
-                      <span class="description">警察、消防、救护车</span>
-                    </div>
-                  </div>
+              <div class="col-lg-4">
+                <div class="info-card">
+                  <h5>{{ texts.bookVaccination }}</h5>
+                  <p>{{ texts.bookVaccinationDesc }}</p>
+                  <button class="btn btn-primary">
+                    {{ texts.bookNow }}
+                  </button>
                 </div>
-                <div class="col-md-6">
-                  <div class="emergency-card">
-                    <h4 class="text-primary">医疗热线</h4>
-                    <div class="emergency-number">
-                      <i class="fas fa-phone text-primary me-2"></i>
-                      <span class="number">13 HEALTH</span>
-                      <span class="description">24小时健康咨询</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 健康检查信息 -->
+      <div class="row mb-5">
+        <div class="col-12">
+          <div class="info-section">
+            <h3 class="section-title mb-4">
+              {{ texts.healthCheckInfo }}
+            </h3>
+            <div class="row">
+              <div class="col-lg-8">
+                <p class="lead">{{ texts.healthCheckLead }}</p>
+                <p>{{ texts.healthCheckDetails }}</p>
+
+                <div class="checkup-includes mt-4">
+                  <h5>{{ texts.checkupIncludes }}</h5>
+                  <div class="row">
+                    <div class="col-md-4">
+                      <h6>{{ texts.physicalExam }}</h6>
+                      <p>{{ texts.physicalExamDesc }}</p>
+                    </div>
+                    <div class="col-md-4">
+                      <h6>{{ texts.chestXray }}</h6>
+                      <p>{{ texts.chestXrayDesc }}</p>
+                    </div>
+                    <div class="col-md-4">
+                      <h6>{{ texts.bloodTest }}</h6>
+                      <p>{{ texts.bloodTestDesc }}</p>
                     </div>
                   </div>
                 </div>
               </div>
+              <div class="col-lg-4">
+                <!-- 评分组件 -->
+                <RatingComponent
+                  v-if="currentUser && currentUser.username"
+                  :target-id="'health-checkup-service'"
+                  :target-type="'health-service'"
+                  :interactive="true"
+                  :current-user="currentUser"
+                  class="mb-3"
+                />
+                <div class="info-card">
+                  <h5>{{ texts.scheduleCheckup }}</h5>
+                  <p>{{ texts.scheduleCheckupDesc }}</p>
+                  <button class="btn btn-success">
+                    {{ texts.scheduleNow }}
+                  </button>
+                </div>
+              </div>
             </div>
-          </section>
+          </div>
+        </div>
+      </div>
+
+      <!-- 紧急联系信息 -->
+      <div class="row">
+        <div class="col-12">
+          <div class="emergency-section">
+            <h3 class="section-title text-danger mb-4">
+              {{ texts.emergencyContacts }}
+            </h3>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <div class="emergency-card">
+                  <h5 class="text-danger">{{ texts.emergency911 }}</h5>
+                  <p class="emergency-number">{{ texts.call }} 000</p>
+                  <p>{{ texts.emergency911Desc }}</p>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="emergency-card">
+                  <h5 class="text-primary">{{ texts.nurseLine }}</h5>
+                  <p class="emergency-number">{{ texts.call }} 1800 022 222</p>
+                  <p>{{ texts.nurseLineDesc }}</p>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="emergency-card">
+                  <h5 class="text-primary">{{ texts.mentalHealth }}</h5>
+                  <p class="emergency-number">{{ texts.call }} 13 11 14</p>
+                  <p>{{ texts.mentalHealthDesc }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -168,7 +178,123 @@
 </template>
 
 <script setup>
-// You can add reactive data here if needed for dynamic content
+import { computed } from 'vue'
+import RatingComponent from './RatingComponent.vue'
+
+// Props
+const props = defineProps({
+  currentUser: {
+    type: Object,
+    default: () => ({ username: 'Guest' }),
+  },
+  lang: {
+    type: String,
+    default: 'zh',
+  },
+})
+
+// 多语言文本
+const texts = computed(() => {
+  const translations = {
+    zh: {
+      healthInfo: '健康信息中心',
+      healthDesc: '为移民朋友提供全面的健康信息和医疗指导',
+      vaccination: '疫苗接种',
+      vaccinationDesc: '了解必要的疫苗接种要求和时间安排',
+      healthCheckup: '体检指南',
+      healthCheckupDesc: '移民体检要求和注意事项详细说明',
+      medication: '常用药品',
+      medicationDesc: '在澳洲常见病症的用药指导和购买建议',
+      emergency: '紧急求助',
+      emergencyDesc: '紧急情况下的求助电话和处理流程',
+      vaccinationInfo: '疫苗接种信息',
+      vaccinationLead: '疫苗接种是保护您和他人健康的重要措施。',
+      vaccinationDetails: '根据澳洲卫生部的规定，移民朋友需要完成以下疫苗接种。',
+      requiredVaccinations: '必需疫苗',
+      fluVaccine: '流感疫苗 - 每年接种一次',
+      covidVaccine: 'COVID-19疫苗 - 根据最新政策要求',
+      hepatitisVaccine: '乙肝疫苗 - 根据检查结果决定',
+      bookVaccination: '预约疫苗接种',
+      bookVaccinationDesc: '点击下面的按钮预约疫苗接种服务。',
+      bookNow: '立即预约',
+      healthCheckInfo: '移民体检指南',
+      healthCheckLead: '移民体检是签证申请的重要环节。',
+      healthCheckDetails: '体检必须在指定的体检医院进行，检查结果直接影响签证审批。',
+      checkupIncludes: '体检项目包括',
+      physicalExam: '身体检查',
+      physicalExamDesc: '包括身高、体重、血压、心率等基本指标',
+      chestXray: '胸部X光',
+      chestXrayDesc: '检查肺部健康状况，排除传染性疾病',
+      bloodTest: '血液检查',
+      bloodTestDesc: 'HIV、梅毒、乙肝等传染病检查',
+      scheduleCheckup: '预约体检',
+      scheduleCheckupDesc: '联系指定医院预约体检时间。',
+      scheduleNow: '预约体检',
+      emergencyContacts: '紧急联系方式',
+      emergency911: '紧急电话',
+      call: '拨打',
+      emergency911Desc: '警察、消防、救护车',
+      nurseLine: '医疗热线',
+      nurseLineDesc: '24小时健康咨询',
+      mentalHealth: '心理健康热线',
+      mentalHealthDesc: '24小时心理支持服务',
+    },
+    en: {
+      healthInfo: 'Health Information Center',
+      healthDesc: 'Comprehensive health information and medical guidance for migrants',
+      vaccination: 'Vaccination',
+      vaccinationDesc: 'Learn about required vaccinations and scheduling',
+      healthCheckup: 'Health Checkup Guide',
+      healthCheckupDesc: 'Detailed requirements and notes for migration health checks',
+      medication: 'Common Medications',
+      medicationDesc:
+        'Medication guidance and purchasing advice for common conditions in Australia',
+      emergency: 'Emergency Help',
+      emergencyDesc: 'Emergency contact numbers and procedures',
+      vaccinationInfo: 'Vaccination Information',
+      vaccinationLead: 'Vaccination is an important measure to protect your health and others.',
+      vaccinationDetails:
+        'According to Australian Department of Health regulations, migrants need to complete the following vaccinations.',
+      requiredVaccinations: 'Required Vaccinations',
+      fluVaccine: 'Flu Vaccine - Annual vaccination',
+      covidVaccine: 'COVID-19 Vaccine - According to latest policy requirements',
+      hepatitisVaccine: 'Hepatitis B Vaccine - Based on test results',
+      bookVaccination: 'Book Vaccination',
+      bookVaccinationDesc: 'Click the button below to book vaccination services.',
+      bookNow: 'Book Now',
+      healthCheckInfo: 'Migration Health Check Guide',
+      healthCheckLead: 'Health checks are an important part of visa applications.',
+      healthCheckDetails:
+        'Health checks must be conducted at designated medical centers, and results directly affect visa approval.',
+      checkupIncludes: 'Health Check Includes',
+      physicalExam: 'Physical Examination',
+      physicalExamDesc:
+        'Including height, weight, blood pressure, heart rate and other basic indicators',
+      chestXray: 'Chest X-ray',
+      chestXrayDesc: 'Check lung health and rule out infectious diseases',
+      bloodTest: 'Blood Test',
+      bloodTestDesc: 'HIV, syphilis, hepatitis B and other infectious disease testing',
+      scheduleCheckup: 'Schedule Health Check',
+      scheduleCheckupDesc: 'Contact designated hospitals to schedule health check appointments.',
+      scheduleNow: 'Schedule Now',
+      emergencyContacts: 'Emergency Contacts',
+      emergency911: 'Emergency Services',
+      call: 'Call',
+      emergency911Desc: 'Police, Fire, Ambulance',
+      nurseLine: 'Health Hotline',
+      nurseLineDesc: '24-hour health consultation',
+      mentalHealth: 'Mental Health Hotline',
+      mentalHealthDesc: '24-hour psychological support services',
+    },
+  }
+  return translations[props.lang] || translations.zh
+})
+
+// 健康信息评分功能
+const handleInfoRatingSubmitted = (ratingData) => {
+  console.log('健康信息评分已提交:', ratingData)
+  // 这里可以添加提交成功的提示
+}
 </script>
 
 <style scoped>

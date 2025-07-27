@@ -1,14 +1,42 @@
-{
-  "name": "Worldwide Bookstores",
-  "totalStores": 5,
-  "countries": ["USA", "UK", "France"],
-  "storeTypes": {
-    "physical": 3,
-    "online": 2
+[
+  {
+    "id": 1,
+    "name": "澳洲图书城",
+    "location": "悉尼市中心",
+    "phone": "0412345678",
+    "type": "实体书店",
+    "openTime": "周一至周日 9:00-21:00"
   },
-  "topSellers": ["To Kill a Mockingbird", "1984", "The Great Gatsby"],
-  "openingHours": {
-    "weekdays": { "open": "9:00 AM", "close": "9:00 PM" },
-    "weekends": { "open": "10:00 AM", "close": "10:00 PM" }
+  {
+    "id": 2,
+    "name": "墨尔本知识书屋",
+    "location": "墨尔本CBD",
+    "phone": "0423456789",
+    "type": "实体书店",
+    "openTime": "周一至周五 8:30-22:00"
+  },
+  {
+    "id": 3,
+    "name": "澳洲在线书店",
+    "location": "布里斯班",
+    "phone": "0434567890",
+    "type": "在线书店",
+    "openTime": "24小时在线服务"
+  },
+  {
+    "id": 4,
+    "name": "黄金海岸读书角",
+    "location": "黄金海岸",
+    "phone": "0445678901",
+    "type": "实体书店",
+    "openTime": "周一至周日 10:00-20:00"
+  },
+  {
+    "id": 5,
+    "name": "佩斯文学书店",
+    "location": "佩斯市区",
+    "phone": "0456789012",
+    "type": "实体书店",
+    "openTime": "周二至周日 9:30-18:30"
   }
-}
+]

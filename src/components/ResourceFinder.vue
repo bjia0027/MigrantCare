@@ -1,179 +1,38 @@
 <template>
   <div class="resource-finder">
     <div class="container mt-4">
-      <!-- Header Section -->
-      <div class="row mb-5">
+      <!-- 页面标题 -->
+      <div class="row mb-4">
         <div class="col-12">
           <div class="page-header text-center">
             <h1 class="display-4 text-primary mb-3">
-              <i class="fas fa-search-location me-3"></i>
-              资源查找中心
+              {{ texts.findResources }}
             </h1>
-            <p class="lead text-muted">快速找到您附近的医疗机构、社区服务和支持资源</p>
+            <p class="lead text-muted">{{ texts.findResourcesDesc }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Search Section -->
-      <div class="row mb-5">
+      <!-- 搜索栏 -->
+      <div class="row mb-4">
         <div class="col-12">
-          <div class="search-card">
-            <h3 class="mb-4">
-              <i class="fas fa-map-marker-alt text-primary me-2"></i>
-              位置搜索
-            </h3>
-            <div class="row">
-              <div class="col-md-8">
-                <div class="input-group mb-3">
-                  <span class="input-group-text">
-                    <i class="fas fa-map-marker-alt"></i>
-                  </span>
+          <div class="search-container">
+            <div class="row align-items-center">
+              <div class="col-md-6">
+                <div class="form-floating">
                   <input
                     type="text"
                     class="form-control"
-                    placeholder="输入您的邮编或地址..."
+                    id="locationSearch"
                     v-model="searchLocation"
+                    :placeholder="texts.searchPlaceholder"
                   />
+                  <label for="locationSearch">{{ texts.currentLocation }}</label>
                 </div>
               </div>
-              <div class="col-md-4">
-                <select class="form-select" v-model="selectedCategory">
-                  <option value="">所有类型</option>
-                  <option value="hospital">医院</option>
-                  <option value="clinic">诊所</option>
-                  <option value="pharmacy">药房</option>
-                  <option value="community">社区中心</option>
-                  <option value="legal">法律援助</option>
-                </select>
-              </div>
-            </div>
-            <button class="btn btn-primary btn-lg" @click="searchResources">
-              <i class="fas fa-search me-2"></i>
-              搜索资源
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Categories -->
-      <div class="row mb-5">
-        <div class="col-12">
-          <h3 class="mb-4">快速分类</h3>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-          <div class="category-card" @click="filterByCategory('hospital')">
-            <div class="category-icon">
-              <i class="fas fa-hospital text-danger"></i>
-            </div>
-            <h5>医院</h5>
-            <p>公立和私立医院，急诊服务</p>
-            <span class="badge bg-danger">{{ hospitals.length }} 个</span>
-          </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-          <div class="category-card" @click="filterByCategory('clinic')">
-            <div class="category-icon">
-              <i class="fas fa-user-md text-primary"></i>
-            </div>
-            <h5>诊所</h5>
-            <p>全科医生，专科门诊</p>
-            <span class="badge bg-primary">{{ clinics.length }} 个</span>
-          </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-          <div class="category-card" @click="filterByCategory('pharmacy')">
-            <div class="category-icon">
-              <i class="fas fa-pills text-success"></i>
-            </div>
-            <h5>药房</h5>
-            <p>处方药品，非处方药物</p>
-            <span class="badge bg-success">{{ pharmacies.length }} 个</span>
-          </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-          <div class="category-card" @click="filterByCategory('community')">
-            <div class="category-icon">
-              <i class="fas fa-users text-warning"></i>
-            </div>
-            <h5>社区中心</h5>
-            <p>社区服务，文化活动</p>
-            <span class="badge bg-warning">{{ communityServices.length }} 个</span>
-          </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-          <div class="category-card" @click="filterByCategory('legal')">
-            <div class="category-icon">
-              <i class="fas fa-balance-scale text-info"></i>
-            </div>
-            <h5>法律援助</h5>
-            <p>移民法律咨询，法律援助</p>
-            <span class="badge bg-info">{{ legalServices.length }} 个</span>
-          </div>
-        </div>
-        <div class="col-md-4 col-sm-6 mb-4">
-          <div class="category-card" @click="filterByCategory('emergency')">
-            <div class="category-icon">
-              <i class="fas fa-ambulance text-danger"></i>
-            </div>
-            <h5>紧急服务</h5>
-            <p>24小时急救，紧急联系</p>
-            <span class="badge bg-danger">24/7</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Search Results -->
-      <div class="row" v-if="filteredResults.length > 0">
-        <div class="col-12">
-          <h3 class="mb-4">
-            搜索结果
-            <span class="text-muted">({{ filteredResults.length }} 个)</span>
-          </h3>
-        </div>
-        <div class="col-lg-6 mb-4" v-for="resource in filteredResults" :key="resource.id">
-          <div class="resource-card">
-            <div class="card-header">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <h5 class="card-title">{{ resource.name }}</h5>
-                  <p class="card-subtitle text-muted">{{ resource.type }}</p>
-                </div>
-                <span class="badge" :class="getBadgeClass(resource.type)">
-                  {{ getTypeLabel(resource.type) }}
-                </span>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="resource-info">
-                <div class="info-item">
-                  <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                  <span>{{ resource.address }}</span>
-                </div>
-                <div class="info-item">
-                  <i class="fas fa-phone text-success me-2"></i>
-                  <span>{{ resource.phone }}</span>
-                </div>
-                <div class="info-item">
-                  <i class="fas fa-clock text-warning me-2"></i>
-                  <span>{{ resource.hours }}</span>
-                </div>
-                <div class="info-item" v-if="resource.distance">
-                  <i class="fas fa-route text-info me-2"></i>
-                  <span>距离: {{ resource.distance }}</span>
-                </div>
-              </div>
-              <div class="resource-actions mt-3">
-                <button class="btn btn-primary btn-sm me-2">
-                  <i class="fas fa-directions me-1"></i>
-                  导航
-                </button>
-                <button class="btn btn-outline-secondary btn-sm me-2">
-                  <i class="fas fa-star me-1"></i>
-                  收藏
-                </button>
-                <button class="btn btn-outline-info btn-sm">
-                  <i class="fas fa-info-circle me-1"></i>
-                  详情
+              <div class="col-md-6 mt-3 mt-md-0">
+                <button class="btn btn-primary btn-lg w-100" @click="searchResources">
+                  {{ texts.searchButton }}
                 </button>
               </div>
             </div>
@@ -181,13 +40,88 @@
         </div>
       </div>
 
-      <!-- No Results -->
-      <div class="row" v-else-if="searchPerformed">
+      <!-- 资源类型按钮 -->
+      <div class="row mb-4">
         <div class="col-12">
-          <div class="no-results text-center">
-            <i class="fas fa-search text-muted mb-3"></i>
-            <h4>未找到相关资源</h4>
-            <p class="text-muted">请尝试更改搜索条件或选择其他分类</p>
+          <div class="resource-categories">
+            <h5 class="mb-3">{{ texts.selectResourceType }}</h5>
+            <div class="btn-group-responsive">
+              <button
+                v-for="category in resourceCategories"
+                :key="category.type"
+                class="btn me-2 mb-2"
+                :class="selectedCategory === category.type ? 'btn-primary' : 'btn-outline-primary'"
+                @click="selectedCategory = category.type"
+              >
+                {{ category.name }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 搜索结果 -->
+      <div class="row" v-if="filteredResources.length > 0">
+        <div class="col-12 mb-3">
+          <h4>{{ texts.searchResults }} ({{ filteredResources.length }})</h4>
+        </div>
+        <div
+          v-for="resource in filteredResources"
+          :key="resource.id"
+          class="col-lg-6 col-md-12 mb-4"
+        >
+          <div class="resource-card h-100">
+            <div class="resource-header">
+              <h5 class="resource-title">{{ resource.name }}</h5>
+              <span class="resource-type badge" :class="getCategoryClass(resource.type)">
+                {{ getCategoryName(resource.type) }}
+              </span>
+            </div>
+            <div class="resource-details">
+              <div class="detail-item">
+                <strong>{{ texts.address }}</strong> {{ resource.address }}
+              </div>
+              <div class="detail-item">
+                <strong>{{ texts.phone }}</strong> {{ resource.phone }}
+              </div>
+              <div class="detail-item">
+                <strong>{{ texts.hours }}</strong> {{ resource.hours }}
+              </div>
+              <div class="detail-item">
+                <strong>{{ texts.distance }}</strong> {{ resource.distance }}
+              </div>
+            </div>
+            <div class="resource-actions">
+              <button class="btn btn-sm btn-outline-primary me-2">
+                {{ texts.getDirections }}
+              </button>
+              <button class="btn btn-sm btn-outline-warning me-2">
+                {{ texts.rate }}
+              </button>
+              <button class="btn btn-sm btn-outline-info">
+                {{ texts.reviewRating }}
+              </button>
+            </div>
+            <!-- 评分组件 -->
+            <RatingComponent
+              v-if="currentUser && currentUser.username"
+              :target-id="`resource-${resource.id}`"
+              :target-type="'resource'"
+              :interactive="true"
+              :current-user="currentUser"
+              class="mt-3"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else class="row">
+        <div class="col-12">
+          <div class="empty-state text-center py-5">
+            <div class="empty-icon mb-3 text-muted"></div>
+            <h4 class="text-muted">{{ texts.noResourcesFound }}</h4>
+            <p class="text-muted">{{ texts.tryDifferentSearch }}</p>
           </div>
         </div>
       </div>
@@ -197,12 +131,36 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import RatingComponent from './RatingComponent.vue'
 
+// Props
+const props = defineProps({
+  currentUser: {
+    type: Object,
+    default: () => ({ username: 'Guest' }),
+  },
+  lang: {
+    type: String,
+    default: 'zh',
+  },
+})
+
+// 状态数据
 const searchLocation = ref('')
 const selectedCategory = ref('')
 const searchPerformed = ref(false)
 
-// Sample data - in real app this would come from an API
+// 资源类别数据
+const resourceCategories = ref([
+  { type: '', name: '全部类型' },
+  { type: 'hospital', name: '医院' },
+  { type: 'clinic', name: '诊所' },
+  { type: 'pharmacy', name: '药房' },
+  { type: 'community', name: '社区中心' },
+  { type: 'legal', name: '法律援助' },
+])
+
+// 资源数据
 const resources = ref([
   {
     id: 1,
@@ -251,52 +209,80 @@ const resources = ref([
   },
 ])
 
-const filteredResults = computed(() => {
+const filteredResources = computed(() => {
   if (!selectedCategory.value) {
     return resources.value
   }
   return resources.value.filter((resource) => resource.type === selectedCategory.value)
 })
 
-const hospitals = computed(() => resources.value.filter((r) => r.type === 'hospital'))
-const clinics = computed(() => resources.value.filter((r) => r.type === 'clinic'))
-const pharmacies = computed(() => resources.value.filter((r) => r.type === 'pharmacy'))
-const communityServices = computed(() => resources.value.filter((r) => r.type === 'community'))
-const legalServices = computed(() => resources.value.filter((r) => r.type === 'legal'))
+// 多语言文本
+const texts = computed(() => {
+  const translations = {
+    zh: {
+      findResources: '资源查找中心',
+      findResourcesDesc: '快速找到您附近的医疗机构、社区服务和支持资源',
+      currentLocation: '当前位置',
+      searchPlaceholder: '输入您的邮编或地址...',
+      searchButton: '搜索资源',
+      selectResourceType: '选择资源类型',
+      searchResults: '搜索结果',
+      address: '地址：',
+      phone: '电话：',
+      hours: '营业时间：',
+      distance: '距离：',
+      getDirections: '获取路线',
+      rate: '评分',
+      reviewRating: '查看评分',
+      noResourcesFound: '未找到相关资源',
+      tryDifferentSearch: '请尝试更改搜索条件或选择其他分类',
+    },
+    en: {
+      findResources: 'Resource Finder Center',
+      findResourcesDesc:
+        'Quickly find nearby medical facilities, community services and support resources',
+      currentLocation: 'Current Location',
+      searchPlaceholder: 'Enter your postcode or address...',
+      searchButton: 'Search Resources',
+      selectResourceType: 'Select Resource Type',
+      searchResults: 'Search Results',
+      address: 'Address:',
+      phone: 'Phone:',
+      hours: 'Hours:',
+      distance: 'Distance:',
+      getDirections: 'Get Directions',
+      rate: 'Rate',
+      reviewRating: 'Review Rating',
+      noResourcesFound: 'No resources found',
+      tryDifferentSearch: 'Please try changing search criteria or selecting other categories',
+    },
+  }
+  return translations[props.lang] || translations.zh
+})
 
+// 搜索功能
 const searchResources = () => {
   searchPerformed.value = true
-  // In a real app, this would trigger an API call
-  console.log('Searching for:', searchLocation.value, 'Category:', selectedCategory.value)
+  console.log('搜索资源:', searchLocation.value, selectedCategory.value)
 }
 
-const filterByCategory = (category) => {
-  selectedCategory.value = category
-  searchPerformed.value = true
+// 获取类别名称
+const getCategoryName = (type) => {
+  const category = resourceCategories.value.find((cat) => cat.type === type)
+  return category ? category.name : type
 }
 
-const getBadgeClass = (type) => {
-  const classes = {
+// 获取类别样式
+const getCategoryClass = (type) => {
+  const classMap = {
     hospital: 'bg-danger',
     clinic: 'bg-primary',
     pharmacy: 'bg-success',
     community: 'bg-warning',
     legal: 'bg-info',
-    emergency: 'bg-dark',
+    emergency: 'bg-danger',
   }
-  return classes[type] || 'bg-secondary'
-}
-
-const getTypeLabel = (type) => {
-  const labels = {
-    hospital: '医院',
-    clinic: '诊所',
-    pharmacy: '药房',
-    community: '社区',
-    legal: '法律',
-    emergency: '急救',
-  }
-  return labels[type] || type
+  return classMap[type] || 'bg-secondary'
 }
 </script>
 

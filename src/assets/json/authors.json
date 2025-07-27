@@ -2,6 +2,8 @@
   {
     "id": 1,
     "name": "Jane Austen",
+    "age": 41,
+    "nationality": "英国",
     "birthYear": 1775,
     "genres": ["Romance", "Social commentary"],
     "famousWorks": [
@@ -12,6 +14,8 @@
   {
     "id": 2,
     "name": "George Orwell",
+    "age": 46,
+    "nationality": "英国",
     "birthYear": 1903,
     "genres": ["Dystopian", "Political satire"],
     "famousWorks": [
@@ -22,11 +26,25 @@
   {
     "id": 3,
     "name": "Agatha Christie",
+    "age": 85,
+    "nationality": "英国",
     "birthYear": 1890,
     "genres": ["Mystery", "Crime fiction"],
     "famousWorks": [
       { "title": "Murder on the Orient Express", "year": 1934 },
       { "title": "Death on the Nile", "year": 1937 }
+    ]
+  },
+  {
+    "id": 4,
+    "name": "村上春树",
+    "age": 75,
+    "nationality": "日本",
+    "birthYear": 1949,
+    "genres": ["现代文学", "魔幻现实主义"],
+    "famousWorks": [
+      { "title": "挪威的森林", "year": 1987 },
+      { "title": "1Q84", "year": 2009 }
     ]
   }
 ]

@@ -32,7 +32,6 @@
               href="#"
               @click="navigateTo('health')"
             >
-              <i class="fas fa-heartbeat me-1"></i>
               {{ texts.health }}
             </a>
           </li>
@@ -43,7 +42,6 @@
               href="#"
               @click="navigateTo('resources')"
             >
-              <i class="fas fa-search-location me-1"></i>
               {{ texts.resources }}
             </a>
           </li>
@@ -54,7 +52,6 @@
               href="#"
               @click="navigateTo('forum')"
             >
-              <i class="fas fa-comments me-1"></i>
               {{ texts.forum }}
             </a>
           </li>
@@ -65,10 +62,10 @@
               href="#"
               @click="navigateTo('appointments')"
             >
-              <i class="fas fa-calendar-alt me-1"></i>
               {{ texts.appointments }}
             </a>
           </li>
+
           <li v-if="isAdmin" class="nav-item">
             <a
               class="nav-link"
@@ -76,7 +73,6 @@
               href="#"
               @click="navigateTo('admin')"
             >
-              <i class="fas fa-user-shield me-1"></i>
               {{ texts.admin }}
             </a>
           </li>
@@ -87,7 +83,6 @@
               href="#"
               @click="navigateTo('userManagement')"
             >
-              <i class="fas fa-users me-1"></i>
               {{ texts.userManagement }}
             </a>
           </li>
@@ -104,7 +99,6 @@
               data-bs-toggle="dropdown"
               aria-expanded="false"
             >
-              <i class="fas fa-globe me-1"></i>
               {{ lang === 'zh' ? '中文' : 'English' }}
             </button>
             <ul class="dropdown-menu" aria-labelledby="langDropdown">
@@ -119,11 +113,9 @@
 
           <div v-if="!isLoggedIn" class="auth-buttons">
             <button class="btn btn-outline-primary me-2" @click="navigateTo('login')">
-              <i class="fas fa-sign-in-alt me-1"></i>
               {{ texts.login }}
             </button>
             <button class="btn btn-primary" @click="navigateTo('register')">
-              <i class="fas fa-user-plus me-1"></i>
               {{ texts.register }}
             </button>
           </div>
@@ -138,11 +130,9 @@
               aria-expanded="false"
             >
               <div class="user-avatar me-2">
-                <i
-                  :class="
-                    isAdmin ? 'fas fa-user-shield text-warning' : 'fas fa-user-circle text-primary'
-                  "
-                ></i>
+                <div class="avatar-circle" :class="isAdmin ? 'text-warning' : 'text-primary'">
+                  {{ isAdmin ? 'A' : 'U' }}
+                </div>
               </div>
               <div class="user-info">
                 <span class="user-name">{{ currentUser.username }}</span>
@@ -166,33 +156,28 @@
               <li><hr class="dropdown-divider" /></li>
               <li v-if="isAdmin">
                 <a class="dropdown-item" href="#" @click="navigateTo('admin')">
-                  <i class="fas fa-shield-alt me-2"></i>
                   {{ texts.admin }}
                 </a>
               </li>
               <li v-if="isAdmin">
                 <a class="dropdown-item" href="#" @click="navigateTo('user-management')">
-                  <i class="fas fa-users-cog me-2"></i>
                   {{ texts.userManagement }}
                 </a>
               </li>
               <li v-if="isAdmin"><hr class="dropdown-divider" /></li>
               <li>
                 <a class="dropdown-item" href="#" @click="navigateTo('profile')">
-                  <i class="fas fa-user me-2"></i>
                   {{ texts.profile }}
                 </a>
               </li>
               <li>
                 <a class="dropdown-item" href="#" @click="navigateTo('settings')">
-                  <i class="fas fa-cog me-2"></i>
                   {{ texts.settings }}
                 </a>
               </li>
               <li><hr class="dropdown-divider" /></li>
               <li>
                 <a class="dropdown-item text-danger" href="#" @click="logout">
-                  <i class="fas fa-sign-out-alt me-2"></i>
                   {{ texts.logout }}
                 </a>
               </li>
@@ -251,6 +236,7 @@ const texts = computed(() => {
       resources: '资源查找',
       forum: '社区论坛',
       appointments: '预约管理',
+      validationDemo: '验证演示',
       admin: '管理面板',
       userManagement: '用户管理',
       login: '登录',
@@ -264,6 +250,7 @@ const texts = computed(() => {
       resources: 'Find Resources',
       forum: 'Community',
       appointments: 'Appointments',
+      validationDemo: 'Validation Demo',
       admin: 'Admin Panel',
       userManagement: 'User Management',
       login: 'Login',
