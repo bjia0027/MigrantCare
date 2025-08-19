@@ -1,7 +1,6 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
-      <!-- Logo -->
       <a class="navbar-brand d-flex align-items-center" href="#" @click="navigateTo('home')">
         <div class="logo-icon">
           <i class="fas fa-heart text-primary me-2"></i>
@@ -9,7 +8,6 @@
         <span class="fw-bold text-primary">MigrantCare</span>
       </a>
 
-      <!-- Mobile toggle button -->
       <button
         class="navbar-toggler"
         type="button"
@@ -22,7 +20,6 @@
         <span class="navbar-toggler-icon"></span>
       </button>
 
-      <!-- Navigation items -->
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item">
@@ -65,6 +62,28 @@
               {{ texts.appointments }}
             </a>
           </li>
+          
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              :class="{ active: currentPage === 'tables' }"
+              href="#"
+              @click="navigateTo('tables')"
+            >
+              {{ texts.tables }}
+            </a>
+          </li>
+          
+          <li class="nav-item">
+            <a
+              class="nav-link"
+              :class="{ active: currentPage === 'deployment' }"
+              href="#"
+              @click="navigateTo('deployment')"
+            >
+              {{ texts.deployment }}
+            </a>
+          </li>
 
           <li v-if="isAdmin" class="nav-item">
             <a
@@ -88,27 +107,24 @@
           </li>
         </ul>
 
-        <!-- User authentication section -->
         <div class="d-flex align-items-center gap-3">
-          <!-- Language Switcher -->
-          <div class="dropdown me-3">
+          <div class="btn-group me-3" role="group" aria-label="Language switcher">
             <button
-              class="btn btn-outline-secondary dropdown-toggle"
               type="button"
-              id="langDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
+              class="btn"
+              :class="lang === 'zh' ? 'btn-primary' : 'btn-outline-primary'"
+              @click="switchLang('zh')"
             >
-              {{ lang === 'zh' ? '中文' : 'English' }}
+              中文
             </button>
-            <ul class="dropdown-menu" aria-labelledby="langDropdown">
-              <li>
-                <a class="dropdown-item" href="#" @click.prevent="switchLang('zh')">中文</a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" @click.prevent="switchLang('en')">English</a>
-              </li>
-            </ul>
+            <button
+              type="button"
+              class="btn"
+              :class="lang === 'en' ? 'btn-primary' : 'btn-outline-primary'"
+              @click="switchLang('en')"
+            >
+              English
+            </button>
           </div>
 
           <div v-if="!isLoggedIn" class="auth-buttons">
@@ -120,7 +136,6 @@
             </button>
           </div>
 
-          <!-- Logged in user section -->
           <div v-else class="dropdown">
             <button
               class="btn btn-light dropdown-toggle d-flex align-items-center"
@@ -194,7 +209,6 @@ import { defineEmits, computed } from 'vue'
 
 const emit = defineEmits(['navigate', 'login', 'logout', 'langChange'])
 
-// Props for current page and user state
 const props = defineProps({
   currentPage: {
     type: String,
@@ -219,7 +233,6 @@ const props = defineProps({
   },
 })
 
-// 权限检查
 const isAdmin = computed(() => {
   return props.isLoggedIn && props.currentUser.role === 'admin'
 })
@@ -228,7 +241,6 @@ const isUser = computed(() => {
   return props.isLoggedIn && props.currentUser.role === 'user'
 })
 
-// 多语言文本
 const texts = computed(() => {
   const translations = {
     zh: {
@@ -236,6 +248,8 @@ const texts = computed(() => {
       resources: '资源查找',
       forum: '社区论坛',
       appointments: '预约管理',
+      tables: '交互式表格',
+      deployment: '部署信息',
       validationDemo: '验证演示',
       admin: '管理面板',
       userManagement: '用户管理',
@@ -250,6 +264,8 @@ const texts = computed(() => {
       resources: 'Find Resources',
       forum: 'Community',
       appointments: 'Appointments',
+      tables: 'Interactive Tables',
+      deployment: 'Deployment Info',
       validationDemo: 'Validation Demo',
       admin: 'Admin Panel',
       userManagement: 'User Management',
@@ -264,7 +280,9 @@ const texts = computed(() => {
 })
 
 const navigateTo = (page) => {
+  console.log('NavigationBar: navigateTo called with:', page)
   emit('navigate', page)
+  console.log('NavigationBar: navigate event emitted')
 }
 
 const logout = () => {
@@ -272,7 +290,10 @@ const logout = () => {
 }
 
 const switchLang = (newLang) => {
+  console.log('NavigationBar: switchLang called with:', newLang)
+  console.log('NavigationBar: Current lang before change:', props.lang)
   emit('langChange', newLang)
+  console.log('NavigationBar: langChange event emitted with:', newLang)
 }
 </script>
 

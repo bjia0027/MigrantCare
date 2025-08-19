@@ -14,6 +14,12 @@ dist-ssr
 coverage
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
 /cypress/videos/
 /cypress/screenshots/
 
@@ -28,7 +34,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
-# 忽略系统生成的临时文件、日志文件、配置文件等
 **/.VirtualBox/
 **/.anaconda/
 **/.atom/

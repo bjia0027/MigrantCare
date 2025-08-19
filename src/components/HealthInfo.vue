@@ -193,107 +193,77 @@ const props = defineProps({
   },
 })
 
-// 多语言文本
 const texts = computed(() => {
-  const translations = {
-    zh: {
-      healthInfo: '健康信息中心',
-      healthDesc: '为移民朋友提供全面的健康信息和医疗指导',
-      vaccination: '疫苗接种',
-      vaccinationDesc: '了解必要的疫苗接种要求和时间安排',
-      healthCheckup: '体检指南',
-      healthCheckupDesc: '移民体检要求和注意事项详细说明',
-      medication: '常用药品',
-      medicationDesc: '在澳洲常见病症的用药指导和购买建议',
-      emergency: '紧急求助',
-      emergencyDesc: '紧急情况下的求助电话和处理流程',
-      vaccinationInfo: '疫苗接种信息',
-      vaccinationLead: '疫苗接种是保护您和他人健康的重要措施。',
-      vaccinationDetails: '根据澳洲卫生部的规定，移民朋友需要完成以下疫苗接种。',
-      requiredVaccinations: '必需疫苗',
-      fluVaccine: '流感疫苗 - 每年接种一次',
-      covidVaccine: 'COVID-19疫苗 - 根据最新政策要求',
-      hepatitisVaccine: '乙肝疫苗 - 根据检查结果决定',
-      bookVaccination: '预约疫苗接种',
-      bookVaccinationDesc: '点击下面的按钮预约疫苗接种服务。',
-      bookNow: '立即预约',
-      healthCheckInfo: '移民体检指南',
-      healthCheckLead: '移民体检是签证申请的重要环节。',
-      healthCheckDetails: '体检必须在指定的体检医院进行，检查结果直接影响签证审批。',
-      checkupIncludes: '体检项目包括',
-      physicalExam: '身体检查',
-      physicalExamDesc: '包括身高、体重、血压、心率等基本指标',
-      chestXray: '胸部X光',
-      chestXrayDesc: '检查肺部健康状况，排除传染性疾病',
-      bloodTest: '血液检查',
-      bloodTestDesc: 'HIV、梅毒、乙肝等传染病检查',
-      scheduleCheckup: '预约体检',
-      scheduleCheckupDesc: '联系指定医院预约体检时间。',
-      scheduleNow: '预约体检',
-      emergencyContacts: '紧急联系方式',
-      emergency911: '紧急电话',
-      call: '拨打',
-      emergency911Desc: '警察、消防、救护车',
-      nurseLine: '医疗热线',
-      nurseLineDesc: '24小时健康咨询',
-      mentalHealth: '心理健康热线',
-      mentalHealthDesc: '24小时心理支持服务',
-    },
-    en: {
-      healthInfo: 'Health Information Center',
-      healthDesc: 'Comprehensive health information and medical guidance for migrants',
-      vaccination: 'Vaccination',
-      vaccinationDesc: 'Learn about required vaccinations and scheduling',
-      healthCheckup: 'Health Checkup Guide',
-      healthCheckupDesc: 'Detailed requirements and notes for migration health checks',
-      medication: 'Common Medications',
-      medicationDesc:
-        'Medication guidance and purchasing advice for common conditions in Australia',
-      emergency: 'Emergency Help',
-      emergencyDesc: 'Emergency contact numbers and procedures',
-      vaccinationInfo: 'Vaccination Information',
-      vaccinationLead: 'Vaccination is an important measure to protect your health and others.',
-      vaccinationDetails:
-        'According to Australian Department of Health regulations, migrants need to complete the following vaccinations.',
-      requiredVaccinations: 'Required Vaccinations',
-      fluVaccine: 'Flu Vaccine - Annual vaccination',
-      covidVaccine: 'COVID-19 Vaccine - According to latest policy requirements',
-      hepatitisVaccine: 'Hepatitis B Vaccine - Based on test results',
-      bookVaccination: 'Book Vaccination',
-      bookVaccinationDesc: 'Click the button below to book vaccination services.',
-      bookNow: 'Book Now',
-      healthCheckInfo: 'Migration Health Check Guide',
-      healthCheckLead: 'Health checks are an important part of visa applications.',
-      healthCheckDetails:
-        'Health checks must be conducted at designated medical centers, and results directly affect visa approval.',
-      checkupIncludes: 'Health Check Includes',
-      physicalExam: 'Physical Examination',
-      physicalExamDesc:
-        'Including height, weight, blood pressure, heart rate and other basic indicators',
-      chestXray: 'Chest X-ray',
-      chestXrayDesc: 'Check lung health and rule out infectious diseases',
-      bloodTest: 'Blood Test',
-      bloodTestDesc: 'HIV, syphilis, hepatitis B and other infectious disease testing',
-      scheduleCheckup: 'Schedule Health Check',
-      scheduleCheckupDesc: 'Contact designated hospitals to schedule health check appointments.',
-      scheduleNow: 'Schedule Now',
-      emergencyContacts: 'Emergency Contacts',
-      emergency911: 'Emergency Services',
-      call: 'Call',
-      emergency911Desc: 'Police, Fire, Ambulance',
-      nurseLine: 'Health Hotline',
-      nurseLineDesc: '24-hour health consultation',
-      mentalHealth: 'Mental Health Hotline',
-      mentalHealthDesc: '24-hour psychological support services',
-    },
-  }
-  return translations[props.lang] || translations.zh
+  return props.lang === 'zh'
+    ? {
+        healthInfo: '健康信息中心',
+        healthInfoDesc: '获取可靠的健康信息和医疗资源',
+        searchPlaceholder: '搜索健康话题...',
+        searchButton: '搜索',
+        categories: '健康分类',
+        general: '常规健康',
+        mental: '心理健康',
+        womens: '女性健康',
+        childrens: '儿童健康',
+        seniors: '老年健康',
+        emergency: '急救信息',
+        featuredArticles: '精选文章',
+        readMore: '阅读更多',
+        rateArticle: '为文章评分',
+        submitRating: '提交评分',
+        thankYou: '感谢您的评分！',
+        averageRating: '平均评分',
+        totalRatings: '总评分数',
+        noRatings: '暂无评分',
+        ratingSubmitted: '评分已提交',
+        ratingError: '评分提交失败，请重试',
+        selectRating: '请选择评分',
+        ratingSuccess: '评分提交成功！',
+      }
+    : {
+        healthInfo: 'Health Information Center',
+        healthInfoDesc: 'Access reliable health information and medical resources',
+        searchPlaceholder: 'Search health topics...',
+        searchButton: 'Search',
+        categories: 'Health Categories',
+        general: 'General Health',
+        mental: 'Mental Health',
+        womens: "Women's Health",
+        childrens: "Children's Health",
+        seniors: 'Senior Health',
+        emergency: 'Emergency Info',
+        featuredArticles: 'Featured Articles',
+        readMore: 'Read More',
+        rateArticle: 'Rate this article',
+        submitRating: 'Submit Rating',
+        thankYou: 'Thank you for your rating!',
+        averageRating: 'Average Rating',
+        totalRatings: 'Total Ratings',
+        noRatings: 'No ratings yet',
+        ratingSubmitted: 'Rating submitted',
+        ratingError: 'Failed to submit rating, please try again',
+        selectRating: 'Please select a rating',
+        ratingSuccess: 'Rating submitted successfully!',
+      }
 })
 
-// 健康信息评分功能
+const submitRating = async (articleId, rating) => {
+  if (!rating) {
+    alert(texts.value.selectRating)
+    return
+  }
+
+  try {
+    await ratingComponent.value.submitRating(rating)
+    alert(texts.value.ratingSuccess)
+  } catch (error) {
+    console.error('Rating submission error:', error)
+    alert(texts.value.ratingError)
+  }
+}
+
 const handleInfoRatingSubmitted = (ratingData) => {
-  console.log('健康信息评分已提交:', ratingData)
-  // 这里可以添加提交成功的提示
+  console.log('Health info rating submitted:', ratingData)
 }
 </script>
 

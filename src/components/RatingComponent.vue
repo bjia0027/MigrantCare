@@ -100,11 +100,9 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['rating-submitted'])
 
-// 响应式数据
 const userRating = ref(0)
 const hoverRating = ref(0)
 
-// 模拟评分数据存储 (在真实应用中这应该来自后端API)
 const ratingsStore = ref({
   resources: {
     1: { ratings: [5, 4, 5, 4, 5], userRatings: {} },
@@ -126,7 +124,6 @@ const ratingsStore = ref({
   },
 })
 
-// 方法 - 初始化评分数据
 const initializeRatings = () => {
   if (!ratingsStore.value[props.targetType]) {
     ratingsStore.value[props.targetType] = {}
@@ -138,8 +135,6 @@ const initializeRatings = () => {
     }
   }
 }
-
-// 计算属性
 const currentRatings = computed(() => {
   return ratingsStore.value[props.targetType]?.[props.targetId] || { ratings: [], userRatings: {} }
 })
@@ -159,7 +154,6 @@ const hasUserRated = computed(() => {
   return !!currentRatings.value.userRatings[props.currentUser.username]
 })
 
-// 方法
 const setRating = (rating) => {
   if (props.interactive && !hasUserRated.value) {
     userRating.value = rating
@@ -180,12 +174,9 @@ const clearRating = () => {
 
 const submitRating = () => {
   if (userRating.value > 0 && !hasUserRated.value) {
-    // 添加到评分列表
     currentRatings.value.ratings.push(userRating.value)
-    // 记录用户已评分
     currentRatings.value.userRatings[props.currentUser.username] = userRating.value
 
-    // 触发事件
     emit('rating-submitted', {
       targetId: props.targetId,
       targetType: props.targetType,
@@ -194,12 +185,9 @@ const submitRating = () => {
       totalRatings: totalRatings.value,
     })
 
-    // 清除用户当前评分状态
     userRating.value = 0
   }
 }
-
-// 初始化评分数据和用户评分
 watch(
   [() => props.targetType, () => props.targetId, () => props.currentUser.username],
   () => {

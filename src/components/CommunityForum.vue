@@ -278,12 +278,11 @@ const props = defineProps({
   },
 })
 
-// 状态数据
 const showNewPostForm = ref(false)
 const selectedCategory = ref('')
 const currentPage = ref(1)
 const postsPerPage = 5
-const newComments = ref({}) // 管理每个帖子的新评论内容
+const newComments = ref({})
 
 const newPost = ref({
   title: '',
@@ -291,7 +290,6 @@ const newPost = ref({
   content: '',
 })
 
-// 论坛统计数据
 const totalMembers = ref(2345)
 
 const totalLikes = computed(() => {
@@ -299,7 +297,7 @@ const totalLikes = computed(() => {
 })
 
 const getActiveUsers = () => {
-  return Math.floor(totalMembers.value * 0.1) // 假设10%的用户今天活跃
+  return Math.floor(totalMembers.value * 0.1)
 }
 
 // Sample forum posts data
@@ -329,7 +327,7 @@ const posts = ref([
     id: 2,
     title: '墨尔本租房经验分享 - 避坑指南',
     content:
-      '在墨尔本租房一年多了，想和大家分享一些经验。包括如何找房、看房注意事项、签约要点等。希望对新来的朋友有帮助。',
+      '在墨尔本租房一年多了，想和大家分享一些经验。包括如何找房、看房注意事项、签约要点等。希望tnew来的朋友有帮助。',
     author: '澳洲老司机',
     category: 'housing',
     createdAt: new Date('2024-01-14'),
@@ -378,7 +376,6 @@ const visiblePages = computed(() => {
   return pages
 })
 
-// 多语言文本
 const texts = computed(() => {
   const translations = {
     zh: {

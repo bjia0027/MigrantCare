@@ -12,5 +12,5 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
-  base: mode === 'production' ? '/MigrantCare/' : '/',
+  base: '/',
 }))

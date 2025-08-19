@@ -48,38 +48,33 @@ export function validateAndSanitizeInput(input, options = {}) {
     errors: [],
   }
 
-  // 检查是否为空
   if (!input || input.trim() === '') {
     if (required) {
       result.isValid = false
-      result.errors.push('此字段为必填项')
+      result.errors.push('This field is required')
     }
     result.sanitized = ''
     return result
   }
 
-  // 转换为字符串并去除首尾空格
   let sanitized = String(input).trim()
 
-  // 长度验证
   if (sanitized.length < minLength) {
     result.isValid = false
-    result.errors.push(`最少需要${minLength}个字符`)
+    result.errors.push(`Minimum ${minLength} characters required`)
   }
 
   if (sanitized.length > maxLength) {
     result.isValid = false
-    result.errors.push(`最多允许${maxLength}个字符`)
+    result.errors.push(`Maximum ${maxLength} characters allowed`)
     sanitized = sanitized.substring(0, maxLength)
   }
 
-  // 正则表达式验证
   if (pattern && !pattern.test(sanitized)) {
     result.isValid = false
-    result.errors.push('输入格式不正确')
+    result.errors.push('Invalid input format')
   }
 
-  // HTML转义（除非明确允许HTML）
   if (!allowHtml) {
     sanitized = escapeHtml(sanitized)
   }
@@ -194,16 +189,12 @@ export function filterContent(content) {
     return content
   }
 
-  // 移除可能的脚本标签
   let filtered = content.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
 
-  // 移除事件属性
   filtered = filtered.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
 
-  // 移除 javascript: 协议
   filtered = filtered.replace(/javascript\s*:/gi, '')
 
-  // 移除 data: 协议（可能包含恶意代码）
   filtered = filtered.replace(/data\s*:/gi, '')
 
   return filtered
@@ -246,7 +237,6 @@ export function checkRateLimit(identifier, maxAttempts = 5, windowMs = 15 * 60 *
 
   rateLimitStore.set(key, attempts + 1)
 
-  // 清理过期的记录
   for (const [mapKey] of rateLimitStore) {
     const keyTime = parseInt(mapKey.split('_')[1]) * windowMs
     if (now - keyTime > windowMs) {
@@ -255,4 +245,67 @@ export function checkRateLimit(identifier, maxAttempts = 5, windowMs = 15 * 60 *
   }
 
   return true
+}
+
+export const validateInput = (value, rules = {}) => {
+  const errors = []
+  
+  if (!value && rules.required) {
+    errors.push('This field is required')
+    return { isValid: false, errors }
+  }
+  
+  const stringValue = String(value || '').trim()
+  
+  if (rules.minLength && stringValue.length < rules.minLength) {
+    errors.push(`Minimum length is ${rules.minLength} characters`)
+  }
+  
+  if (rules.maxLength && stringValue.length > rules.maxLength) {
+    errors.push(`Maximum length is ${rules.maxLength} characters`)
+  }
+  
+  if (rules.pattern && !rules.pattern.test(stringValue)) {
+    errors.push(rules.patternMessage || 'Invalid format')
+  }
+  
+  if (rules.allowHtml !== true) {
+    const cleanValue = sanitizeHtml(stringValue)
+    if (cleanValue !== stringValue) {
+      errors.push('HTML content is not allowed')
+    }
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors,
+    sanitizedValue: rules.allowHtml ? stringValue : sanitizeHtml(stringValue)
+  }
+}
+
+export const sanitizeHtml = (input) => {
+  if (typeof input !== 'string') return ''
+  
+  return input
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/data:/gi, '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;')
+}
+
+const cleanupExpiredRecords = () => {
+  const now = Date.now()
+  const oneHour = 60 * 60 * 1000
+  
+  for (const [key, record] of rateLimitStore.entries()) {
+    if (now - record.firstAttempt > oneHour) {
+      rateLimitStore.delete(key)
+    }
+  }
 }

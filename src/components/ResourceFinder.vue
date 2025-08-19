@@ -145,12 +145,10 @@ const props = defineProps({
   },
 })
 
-// 状态数据
 const searchLocation = ref('')
 const selectedCategory = ref('')
 const searchPerformed = ref(false)
 
-// 资源类别数据
 const resourceCategories = ref([
   { type: '', name: '全部类型' },
   { type: 'hospital', name: '医院' },
@@ -159,8 +157,6 @@ const resourceCategories = ref([
   { type: 'community', name: '社区中心' },
   { type: 'legal', name: '法律援助' },
 ])
-
-// 资源数据
 const resources = ref([
   {
     id: 1,
@@ -200,7 +196,7 @@ const resources = ref([
   },
   {
     id: 5,
-    name: '移民法律援助中心',
+    name: '移民援助中心',
     type: 'legal',
     address: '321 Queen Street, Melbourne VIC 3000',
     phone: '(03) 9456 7890',
@@ -216,7 +212,6 @@ const filteredResources = computed(() => {
   return resources.value.filter((resource) => resource.type === selectedCategory.value)
 })
 
-// 多语言文本
 const texts = computed(() => {
   const translations = {
     zh: {
@@ -260,19 +255,16 @@ const texts = computed(() => {
   return translations[props.lang] || translations.zh
 })
 
-// 搜索功能
 const searchResources = () => {
   searchPerformed.value = true
   console.log('搜索资源:', searchLocation.value, selectedCategory.value)
 }
 
-// 获取类别名称
 const getCategoryName = (type) => {
   const category = resourceCategories.value.find((cat) => cat.type === type)
   return category ? category.name : type
 }
 
-// 获取类别样式
 const getCategoryClass = (type) => {
   const classMap = {
     hospital: 'bg-danger',

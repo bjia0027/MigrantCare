@@ -243,7 +243,14 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-// 状态数据
+// Props
+const props = defineProps({
+  lang: {
+    type: String,
+    default: 'zh'
+  }
+})
+
 const showNewAppointmentForm = ref(false)
 const activeTab = ref('upcoming')
 const today = new Date().toISOString().split('T')[0]
@@ -256,8 +263,6 @@ const newAppointment = ref({
   location: '',
   notes: '',
 })
-
-// 预约数据
 const appointments = ref([
   {
     id: 1,
@@ -281,7 +286,6 @@ const appointments = ref([
   },
 ])
 
-// 计算属性
 const upcomingAppointments = computed(() => {
   const now = new Date()
   return appointments.value.filter((apt) => new Date(apt.date) >= now && apt.status === 'confirmed')
@@ -297,7 +301,6 @@ const completedAppointments = computed(() => {
   return appointments.value.filter((apt) => new Date(apt.date) < now || apt.status === 'completed')
 })
 
-// 多语言文本
 const texts = computed(() => {
   const translations = {
     zh: {
@@ -363,10 +366,9 @@ const texts = computed(() => {
       noAppointmentsToday: 'No appointments today',
     },
   }
-  return translations['zh'] // 暂时固定为中文，您可以添加lang prop支持
+  return translations[props.lang] || translations.zh
 })
 
-// 功能函数
 const submitAppointment = () => {
   if (
     newAppointment.value.doctor &&
@@ -475,6 +477,162 @@ const getStatusLabel = (status) => {
     cancelled: '已取消',
   }
   return labels[status] || status
+}
+
+const currentUser = ref(null)
+const showModal = ref(false)
+const modalMode = ref('create')
+const selectedAppointment = ref(null)
+
+const appointmentForm = ref({
+  patientName: '',
+  doctorName: '',
+  date: '',
+  time: '',
+  type: '',
+  notes: ''
+})
+
+const appointments = ref([
+  {
+    id: 1,
+    patientName: 'John Smith',
+    doctorName: 'Dr. Wang',
+    date: '2024-01-15',
+    time: '09:00',
+    type: 'general',
+    status: 'confirmed',
+    notes: 'Regular checkup'
+  },
+  {
+    id: 2,
+    patientName: 'Maria Garcia',
+    doctorName: 'Dr. Li',
+    date: '2024-01-16',
+    time: '14:30',
+    type: 'specialist',
+    status: 'pending',
+    notes: 'Follow-up consultation'
+  },
+  {
+    id: 3,
+    patientName: 'Ahmed Hassan',
+    doctorName: 'Dr. Chen',
+    date: '2024-01-17',
+    time: '11:00',
+    type: 'emergency',
+    status: 'cancelled',
+    notes: 'Emergency consultation'
+  }
+])
+
+const filteredAppointments = computed(() => {
+  return appointments.value.filter(appointment => {
+    return appointment.patientName.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
+           appointment.doctorName.toLowerCase().includes(searchTerm.value.toLowerCase())
+  })
+})
+
+const texts = computed(() => {
+  const translations = {
+    zh: {
+      appointmentManagement: '预约管理',
+      appointmentDesc: '管理您的医疗预约，查看预约状态和详情',
+      searchPlaceholder: '搜索患者或医生姓名...',
+      newAppointment: '新建预约',
+      patientName: '患者姓名',
+      doctorName: '医生姓名',
+      date: '日期',
+      time: '时间',
+      type: '类型',
+      status: '状态',
+      actions: '操作',
+      general: '常规检查',
+      specialist: '专科咨询',
+      emergency: '紧急就诊',
+      confirmed: '已确认',
+      pending: '待确认',
+      cancelled: '已取消',
+      edit: '编辑',
+      cancel: '取消',
+      view: '查看',
+      createAppointment: '创建预约',
+      editAppointment: '编辑预约',
+      appointmentDetails: '预约详情',
+      enterPatientName: '请输入患者姓名',
+      enterDoctorName: '请输入医生姓名',
+      selectDate: '选择日期',
+      selectTime: '选择时间',
+      selectType: '选择类型',
+      notes: '备注',
+      enterNotes: '请输入备注信息...',
+      save: '保存',
+      close: '关闭',
+      confirmCancel: '确认取消',
+      cancelConfirmMessage: '确定要取消这个预约吗？',
+      yes: '是',
+      no: '否'
+    },
+    en: {
+      appointmentManagement: 'Appointment Management',
+      appointmentDesc: 'Manage your medical appointments, view appointment status and details',
+      searchPlaceholder: 'Search patient or doctor name...',
+      newAppointment: 'New Appointment',
+      patientName: 'Patient Name',
+      doctorName: 'Doctor Name',
+      date: 'Date',
+      time: 'Time',
+      type: 'Type',
+      status: 'Status',
+      actions: 'Actions',
+      general: 'General Checkup',
+      specialist: 'Specialist Consultation',
+      emergency: 'Emergency Visit',
+      confirmed: 'Confirmed',
+      pending: 'Pending',
+      cancelled: 'Cancelled',
+      edit: 'Edit',
+      cancel: 'Cancel',
+      view: 'View',
+      createAppointment: 'Create Appointment',
+      editAppointment: 'Edit Appointment',
+      appointmentDetails: 'Appointment Details',
+      enterPatientName: 'Enter patient name',
+      enterDoctorName: 'Enter doctor name',
+      selectDate: 'Select date',
+      selectTime: 'Select time',
+      selectType: 'Select type',
+      notes: 'Notes',
+      enterNotes: 'Enter notes...',
+      save: 'Save',
+      close: 'Close',
+      confirmCancel: 'Confirm Cancel',
+      cancelConfirmMessage: 'Are you sure you want to cancel this appointment?',
+      yes: 'Yes',
+      no: 'No'
+    }
+  }
+  return translations[props.lang] || translations.zh
+})
+
+const openModal = (mode, appointment = null) => {
+  modalMode.value = mode
+  selectedAppointment.value = appointment
+  
+  if (mode === 'create') {
+    appointmentForm.value = {
+      patientName: '',
+      doctorName: '',
+      date: '',
+      time: '',
+      type: '',
+      notes: ''
+    }
+  } else if (mode === 'edit' && appointment) {
+    appointmentForm.value = { ...appointment }
+  }
+  
+  showModal.value = true
 }
 </script>
 
