@@ -77,8 +77,22 @@ const userList = ref([
   },
 ])
 
+// 计算属性
+const isAdmin = computed(() => {
+  return authStore.user?.role === 'admin' || authStore.user?.email === 'admin@migrantcare.com'
+})
+
+const isUser = computed(() => {
+  return authStore.isAuthenticated && !isAdmin.value
+})
+
+// 导航方法
+const navigateTo = (page) => {
+  router.push(`/${page}`)
+}
+
 onMounted(() => {
-  authStore.initializeAuth()
+  authStore.initAuthListener()
 })
 
 const texts = computed(() => {

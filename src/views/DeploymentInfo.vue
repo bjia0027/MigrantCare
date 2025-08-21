@@ -3,6 +3,63 @@
     <div class="deployment-info">
       <h1 class="mb-4">{{ texts.deploymentInfo }}</h1>
       
+      <!-- 系统健康状态 -->
+      <div class="card mb-4">
+        <div class="card-header" :class="healthStatusClass">
+          <div class="d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0 text-white">
+              <i class="fas fa-heartbeat me-2"></i>
+              {{ texts.systemHealth }}
+            </h2>
+            <div class="d-flex align-items-center">
+              <span class="badge" :class="healthBadgeClass" v-if="healthStatus">
+                {{ healthStatus.status === 'healthy' ? texts.healthy : texts.unhealthy }}
+              </span>
+              <button 
+                class="btn btn-sm btn-outline-light ms-2" 
+                @click="checkHealth" 
+                :disabled="isCheckingHealth"
+              >
+                <i class="fas fa-sync-alt" :class="{ 'fa-spin': isCheckingHealth }"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div v-if="healthStatus" class="row">
+            <div class="col-md-3">
+              <h6 class="text-muted mb-1">{{ texts.status }}</h6>
+              <p class="mb-0">
+                <i class="fas" :class="healthStatus.status === 'healthy' ? 'fa-check-circle text-success' : 'fa-exclamation-triangle text-danger'"></i>
+                {{ healthStatus.status === 'healthy' ? texts.operational : texts.error }}
+              </p>
+            </div>
+            <div class="col-md-3" v-if="healthStatus.version">
+              <h6 class="text-muted mb-1">{{ texts.version }}</h6>
+              <p class="mb-0">{{ healthStatus.version }}</p>
+            </div>
+            <div class="col-md-3" v-if="healthStatus.buildTime">
+              <h6 class="text-muted mb-1">{{ texts.buildTime }}</h6>
+              <p class="mb-0">{{ formatDate(healthStatus.buildTime) }}</p>
+            </div>
+            <div class="col-md-3">
+              <h6 class="text-muted mb-1">{{ texts.lastCheck }}</h6>
+              <p class="mb-0">{{ lastCheckTime ? formatDate(lastCheckTime) : texts.never }}</p>
+            </div>
+          </div>
+          <div v-else-if="healthError" class="alert alert-danger mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ texts.healthCheckFailed }}: {{ healthError }}
+          </div>
+          <div v-else class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">{{ texts.loading }}</span>
+            </div>
+            <p class="mt-2 mb-0 text-muted">{{ texts.checkingHealth }}</p>
+          </div>
+        </div>
+      </div>
+      
       <div class="card mb-4">
         <div class="card-header bg-primary text-white">
           <h2 class="h5 mb-0">{{ texts.deploymentDetails }}</h2>
@@ -163,7 +220,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import apiClient from '../utils/apiClient'
 
 const props = defineProps({
   lang: {
@@ -174,13 +232,99 @@ const props = defineProps({
 
 const lang = ref(props.lang)
 
+// 健康检查相关状态
+const healthStatus = ref(null)
+const healthError = ref(null)
+const isCheckingHealth = ref(false)
+const lastCheckTime = ref(null)
+const healthCheckInterval = ref(null)
+
 watch(() => props.lang, (newLang) => {
   lang.value = newLang
+})
+
+// 健康状态样式计算
+const healthStatusClass = computed(() => {
+  if (!healthStatus.value) return 'bg-secondary'
+  return healthStatus.value.status === 'healthy' ? 'bg-success' : 'bg-danger'
+})
+
+const healthBadgeClass = computed(() => {
+  if (!healthStatus.value) return 'bg-secondary'
+  return healthStatus.value.status === 'healthy' ? 'bg-light text-success' : 'bg-light text-danger'
+})
+
+// 健康检查函数
+const checkHealth = async () => {
+  isCheckingHealth.value = true
+  healthError.value = null
+  
+  try {
+    const response = await apiClient.checkHealth()
+    healthStatus.value = response
+    lastCheckTime.value = new Date()
+    console.log('健康检查成功:', response)
+  } catch (error) {
+    console.error('健康检查失败:', error)
+    healthError.value = error.message || '健康检查失败'
+    healthStatus.value = null
+  } finally {
+    isCheckingHealth.value = false
+  }
+}
+
+// 格式化日期
+const formatDate = (date) => {
+  if (!date) return ''
+  const d = new Date(date)
+  return d.toLocaleString(lang.value === 'zh' ? 'zh-CN' : 'en-US')
+}
+
+// 启动定期健康检查
+const startHealthCheck = () => {
+  // 立即执行一次
+  checkHealth()
+  
+  // 每60秒检查一次
+  healthCheckInterval.value = setInterval(() => {
+    checkHealth()
+  }, 60000)
+}
+
+// 停止健康检查
+const stopHealthCheck = () => {
+  if (healthCheckInterval.value) {
+    clearInterval(healthCheckInterval.value)
+    healthCheckInterval.value = null
+  }
+}
+
+// 组件挂载时启动健康检查
+onMounted(() => {
+  startHealthCheck()
+})
+
+// 组件卸载时停止健康检查
+onUnmounted(() => {
+  stopHealthCheck()
 })
 const texts = computed(() => {
   return lang.value === 'zh'
     ? {
         deploymentInfo: '部署信息',
+        systemHealth: '系统健康状态',
+        status: '状态',
+        healthy: '健康',
+        unhealthy: '异常',
+        operational: '正常运行',
+        error: '错误',
+        version: '版本',
+        buildTime: '构建时间',
+        lastCheck: '最后检查',
+        never: '从未',
+        loading: '加载中...',
+        checkingHealth: '正在检查系统健康状态...',
+        healthCheckFailed: '健康检查失败',
         deploymentDetails: '部署详情',
         publicUrl: '公共URL',
         deploymentPlatform: '部署平台',
@@ -211,6 +355,19 @@ const texts = computed(() => {
       }
     : {
         deploymentInfo: 'Deployment Information',
+        systemHealth: 'System Health Status',
+        status: 'Status',
+        healthy: 'Healthy',
+        unhealthy: 'Unhealthy',
+        operational: 'Operational',
+        error: 'Error',
+        version: 'Version',
+        buildTime: 'Build Time',
+        lastCheck: 'Last Check',
+        never: 'Never',
+        loading: 'Loading...',
+        checkingHealth: 'Checking system health status...',
+        healthCheckFailed: 'Health check failed',
         deploymentDetails: 'Deployment Details',
         publicUrl: 'Public URL',
         deploymentPlatform: 'Deployment Platform',

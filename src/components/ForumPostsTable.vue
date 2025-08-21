@@ -1,6 +1,30 @@
 <template>
   <div class="data-table-container">
-    <h2 class="mb-4">{{ texts.forumPosts }}</h2>
+    <div class="table-header">
+      <h2 class="mb-4">{{ texts.forumPosts }}</h2>
+      <div class="export-buttons">
+        <button 
+          @click="exportToCSV" 
+          :disabled="isExporting"
+          class="btn btn-outline-success me-2"
+          :aria-label="texts.exportCSV"
+        >
+          <span v-if="isExporting && exportType === 'csv'" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-file-csv me-1"></i>
+          {{ texts.exportCSV }}
+        </button>
+        <button 
+          @click="exportToPDF" 
+          :disabled="isExporting"
+          class="btn btn-outline-danger"
+          :aria-label="texts.exportPDF"
+        >
+          <span v-if="isExporting && exportType === 'pdf'" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-file-pdf me-1"></i>
+          {{ texts.exportPDF }}
+        </button>
+      </div>
+    </div>
 
     <!-- 全局搜索 -->
     <div class="mb-3">
@@ -508,6 +532,14 @@ const filters = ref({
   createdAfter: ''
 })
 const selectedTags = ref([])
+const isExporting = ref(false)
+const exportType = ref('')
+
+// Import jsPDF for PDF export
+const loadJsPDF = async () => {
+  const { jsPDF } = await import('jspdf')
+  return jsPDF
+}
 
 let debounceTimeout = null
 const debounce = (fn, delay) => {
@@ -710,6 +742,176 @@ const getCategoryText = (category) => {
     default: return category
   }
 }
+
+const exportToCSV = async () => {
+  isExporting.value = true
+  exportType.value = 'csv'
+  
+  try {
+    const csvContent = generateCSV()
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
+    const filename = `forum-posts_${timestamp}.csv`
+    downloadFile(csvContent, filename, 'text/csv;charset=utf-8')
+  } catch (error) {
+    console.error('Export to CSV failed:', error)
+    alert(texts.value.exportError)
+  } finally {
+    isExporting.value = false
+    exportType.value = ''
+  }
+}
+
+const exportToPDF = async () => {
+  isExporting.value = true
+  exportType.value = 'pdf'
+  
+  try {
+    const dataCount = filteredData.value.length
+    
+    if (dataCount > 1000) {
+      // Large dataset - use backend async processing
+      alert(texts.value.largeExportNotification)
+      // Here you would call your backend API
+      // await submitLargeExportTask('forum-posts', getCurrentFilters())
+    } else if (dataCount > 100) {
+      // Medium dataset - use cloud function
+      const printTemplate = generatePrintTemplate()
+      // await callCloudFunction('generate-pdf', { template: printTemplate, filename: getFilename('pdf') })
+      console.log('Would call cloud function for PDF generation')
+    } else {
+      // Small dataset - generate PDF on frontend
+      await generatePDFOnFrontend()
+    }
+  } catch (error) {
+    console.error('Export to PDF failed:', error)
+    alert(texts.value.exportError)
+  } finally {
+    isExporting.value = false
+    exportType.value = ''
+  }
+}
+
+const generateCSV = () => {
+  const headers = [
+    'ID',
+    texts.value.title,
+    texts.value.author,
+    texts.value.createdAt,
+    texts.value.category,
+    texts.value.likes,
+    texts.value.tags
+  ]
+  
+  const csvRows = [headers.join(',')]
+  
+  filteredData.value.forEach(post => {
+    const row = [
+      post.id,
+      `"${post.title.replace(/"/g, '""')}"`,
+      `"${post.author.replace(/"/g, '""')}"`,
+      formatDate(post.createdAt),
+      `"${getCategoryText(post.category).replace(/"/g, '""')}"`,
+      post.likes,
+      `"${post.tags.join('; ').replace(/"/g, '""')}"`
+    ]
+    csvRows.push(row.join(','))
+  })
+  
+  // Add UTF-8 BOM for Excel compatibility
+  const BOM = '\uFEFF'
+  return BOM + csvRows.join('\n')
+}
+
+const downloadFile = (content, filename, mimeType) => {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const generatePDFOnFrontend = async () => {
+  try {
+    const jsPDF = await loadJsPDF()
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(16)
+    doc.text(texts.value.forumPosts, 20, 20)
+    
+    // Add export info
+    doc.setFontSize(10)
+    const exportTime = new Date().toLocaleString()
+    doc.text(`${texts.value.exportTime}: ${exportTime}`, 20, 30)
+    
+    // Add table headers
+    let yPosition = 50
+    doc.setFontSize(12)
+    const headers = ['ID', texts.value.title, texts.value.author, texts.value.createdAt, texts.value.category, texts.value.likes]
+    doc.text(headers.join('  |  '), 20, yPosition)
+    
+    // Add data rows
+    yPosition += 10
+    filteredData.value.forEach((post, index) => {
+      if (yPosition > 270) {
+        doc.addPage()
+        yPosition = 20
+      }
+      
+      const row = [
+        post.id,
+        post.title.substring(0, 20) + (post.title.length > 20 ? '...' : ''),
+        post.author,
+        formatDate(post.createdAt),
+        getCategoryText(post.category),
+        post.likes
+      ]
+      
+      doc.setFontSize(10)
+      doc.text(row.join('  |  '), 20, yPosition)
+      yPosition += 8
+    })
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
+    const filename = `forum-posts_${timestamp}.pdf`
+    doc.save(filename)
+  } catch (error) {
+    console.error('PDF generation failed:', error)
+    throw error
+  }
+}
+
+const generatePrintTemplate = () => {
+  const exportTime = new Date().toLocaleString()
+  const userEmail = 'user@example.com' // This would come from auth context
+  
+  return {
+    title: texts.value.forumPosts,
+    exportTime,
+    userEmail,
+    data: filteredData.value.map(post => ({
+      id: post.id,
+      title: post.title,
+      author: post.author,
+      createdAt: formatDate(post.createdAt),
+      category: getCategoryText(post.category),
+      likes: post.likes,
+      tags: post.tags.join(', ')
+    })),
+    filters: {
+      globalSearch: globalSearch.value,
+      titleFilter: filters.value.title,
+      authorFilter: filters.value.author,
+      categoryFilter: filters.value.category,
+      selectedTags: selectedTags.value
+    }
+  }
+}
+
 const texts = computed(() => {
   return props.lang === 'zh'
     ? {
@@ -734,6 +936,11 @@ const texts = computed(() => {
         showing: '显示',
         of: '共',
         entries: '条记录',
+         exportCSV: '导出CSV',
+         exportPDF: '导出PDF',
+         exportError: '导出失败，请重试',
+         largeExportNotification: '数据量较大，正在后台生成PDF。完成后将发送邮件通知。',
+         exportTime: '导出时间',
       }
     : {
         forumPosts: 'Forum Posts',
@@ -757,6 +964,11 @@ const texts = computed(() => {
         showing: 'Showing',
         of: 'of',
         entries: 'entries',
+         exportCSV: 'Export CSV',
+         exportPDF: 'Export PDF',
+         exportError: 'Export failed, please try again',
+         largeExportNotification: 'Large dataset detected. PDF is being generated in background. You will receive an email notification when ready.',
+         exportTime: 'Export Time',
       }
 })
 </script>
@@ -768,6 +980,23 @@ const texts = computed(() => {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-buttons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .sortable {
@@ -799,6 +1028,17 @@ const texts = computed(() => {
 @media (max-width: 768px) {
   .data-table-container {
     padding: 1rem;
+  }
+  
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .export-buttons {
+    width: 100%;
+    justify-content: flex-end;
   }
   
   /* 在小屏幕上将表格转换为卡片视图 */

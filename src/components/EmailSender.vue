@@ -147,6 +147,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '../stores/auth'
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { v4 as uuidv4 } from 'uuid'
+import apiClient from '../utils/apiClient'
 
 // Props for language support
 const props = defineProps({
@@ -274,20 +275,8 @@ const sendEmail = async () => {
       requestId: uuidv4() // 用于幂等性检查
     }
     
-    const response = await fetch('/api/sendEmail', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await authStore.user.getIdToken()}`
-      },
-      body: JSON.stringify(emailData)
-    })
-    
-    const result = await response.json()
-    
-    if (!response.ok) {
-      throw new Error(result.error || texts.value.sendingFailed)
-    }
+    // 使用统一的API客户端发送邮件
+    const result = await apiClient.sendEmail(emailData)
     
     emailHistory.value.unshift({
       recipient: emailForm.value.recipient,
