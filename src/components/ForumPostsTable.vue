@@ -1,28 +1,50 @@
 <template>
   <div class="data-table-container">
-    <div class="table-header">
-      <h2 class="mb-4">{{ texts.forumPosts }}</h2>
-      <div class="export-buttons">
-        <button 
-          @click="exportToCSV" 
-          :disabled="isExporting"
-          class="btn btn-outline-success me-2"
-          :aria-label="texts.exportCSV"
-        >
-          <span v-if="isExporting && exportType === 'csv'" class="spinner-border spinner-border-sm me-1"></span>
-          <i v-else class="fas fa-file-csv me-1"></i>
-          {{ texts.exportCSV }}
-        </button>
-        <button 
-          @click="exportToPDF" 
-          :disabled="isExporting"
-          class="btn btn-outline-danger"
-          :aria-label="texts.exportPDF"
-        >
-          <span v-if="isExporting && exportType === 'pdf'" class="spinner-border spinner-border-sm me-1"></span>
-          <i v-else class="fas fa-file-pdf me-1"></i>
-          {{ texts.exportPDF }}
-        </button>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">{{ texts.forumPosts }}</h2>
+      <div class="d-flex gap-2">
+        <!-- 批量操作按钮 -->
+        <div v-if="selectedItems.length > 0" class="btn-group me-2" role="group" aria-label="Bulk actions">
+          <button 
+            class="btn btn-outline-info" 
+            @click="openBulkEmailModal"
+            :title="texts.bulkEmail"
+          >
+            <i class="fas fa-envelope me-2"></i>
+            {{ texts.bulkEmail }} ({{ selectedItems.length }})
+          </button>
+          <button 
+            class="btn btn-outline-secondary" 
+            @click="clearSelection"
+            :title="texts.clearSelection"
+          >
+            <i class="fas fa-times me-2"></i>
+            {{ texts.clearSelection }}
+          </button>
+        </div>
+        <!-- 导出按钮 -->
+        <div class="btn-group" role="group" aria-label="Export options">
+          <button 
+            @click="exportToCSV" 
+            :disabled="isExporting"
+            class="btn btn-outline-success"
+            :aria-label="texts.exportCSV"
+          >
+            <span v-if="isExporting && exportType === 'csv'" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="fas fa-file-csv me-1"></i>
+            {{ texts.exportCSV }}
+          </button>
+          <button 
+            @click="exportToPDF" 
+            :disabled="isExporting"
+            class="btn btn-outline-danger"
+            :aria-label="texts.exportPDF"
+          >
+            <span v-if="isExporting && exportType === 'pdf'" class="spinner-border spinner-border-sm me-1"></span>
+            <i v-else class="fas fa-file-pdf me-1"></i>
+            {{ texts.exportPDF }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -117,6 +139,21 @@
       <table class="table table-striped table-hover">
         <thead>
           <tr>
+            <th scope="col" style="width: 50px;">
+              <div class="form-check">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  :checked="isAllSelected"
+                  :indeterminate="isIndeterminate"
+                  @change="toggleSelectAll"
+                  id="selectAll"
+                >
+                <label class="form-check-label" for="selectAll">
+                  <span class="visually-hidden">{{ texts.selectAll }}</span>
+                </label>
+              </div>
+            </th>
             <th @click="sort('id')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('id')">
               ID
               <i v-if="sortColumn === 'id'" :class="getSortIconClass('id')"></i>
@@ -146,7 +183,7 @@
         </thead>
         <tbody>
           <tr v-if="filteredData.length === 0">
-            <td colspan="7" class="text-center py-4">
+            <td colspan="8" class="text-center py-4">
               <div class="empty-state">
                 <i class="fas fa-search fa-3x mb-3"></i>
                 <p>{{ texts.noResults }}</p>
@@ -158,7 +195,22 @@
             :key="post.id"
             tabindex="0"
             class="table-row"
+            :class="{'table-info': selectedItems.includes(post.id)}"
           >
+            <td>
+              <div class="form-check">
+                <input 
+                  class="form-check-input" 
+                  type="checkbox" 
+                  :value="post.id"
+                  v-model="selectedItems"
+                  :id="`select-${post.id}`"
+                >
+                <label class="form-check-label" :for="`select-${post.id}`">
+                  <span class="visually-hidden">{{ texts.selectItem }}</span>
+                </label>
+              </div>
+            </td>
             <td>{{ post.id }}</td>
             <td>{{ post.title }}</td>
             <td>{{ post.author }}</td>
@@ -226,11 +278,45 @@
       </nav>
     </div>
   </div>
+
+  <!-- 批量邮件模态框 -->
+  <div 
+    v-if="showBulkEmailModal" 
+    class="modal fade show" 
+    style="display: block; background-color: rgba(0,0,0,0.5);"
+    tabindex="-1"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-envelope me-2"></i>
+            {{ texts.bulkEmail }} ({{ selectedItems.length }} {{ texts.selectedUsers }})
+          </h5>
+          <button 
+            type="button" 
+            class="btn-close" 
+            @click="closeBulkEmailModal"
+            :aria-label="texts.close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <EmailSender 
+            :lang="lang"
+            :preselected-recipients="getSelectedUsers()"
+            @email-sent="closeBulkEmailModal"
+            @close="closeBulkEmailModal"
+          ></EmailSender>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import EmailSender from './EmailSender.vue'
 
 const props = defineProps({
   lang: {
@@ -535,6 +621,10 @@ const selectedTags = ref([])
 const isExporting = ref(false)
 const exportType = ref('')
 
+// 多选相关的响应式变量
+const selectedItems = ref([])
+const showBulkEmailModal = ref(false)
+
 // Import jsPDF for PDF export
 const loadJsPDF = async () => {
   const { jsPDF } = await import('jspdf')
@@ -674,6 +764,15 @@ const endIndex = computed(() => {
   return Math.min(startIndex.value + itemsPerPage, filteredData.value.length)
 })
 
+// 多选相关的计算属性
+const isAllSelected = computed(() => {
+  return paginatedData.value.length > 0 && selectedItems.value.length === paginatedData.value.length
+})
+
+const isIndeterminate = computed(() => {
+  return selectedItems.value.length > 0 && selectedItems.value.length < paginatedData.value.length
+})
+
 const visiblePageNumbers = computed(() => {
   const delta = 2
   const range = []
@@ -720,7 +819,38 @@ const getSortAriaLabel = (column) => {
   if (sortColumn.value !== column) return 'none'
   return sortDirection.value === 'asc' ? 'ascending' : 'descending'
 }
+// 多选相关的方法
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedItems.value = []
+  } else {
+    selectedItems.value = paginatedData.value.map(item => item.id)
+  }
+}
 
+const clearSelection = () => {
+  selectedItems.value = []
+}
+
+const openBulkEmailModal = () => {
+  showBulkEmailModal.value = true
+}
+
+const closeBulkEmailModal = () => {
+  showBulkEmailModal.value = false
+}
+
+const getSelectedUsers = () => {
+  return posts.value
+    .filter(item => selectedItems.value.includes(item.id))
+    .map(post => ({
+      email: `${post.author.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      name: post.author,
+      phone: ''
+    }))
+}
+
+// 分页方法
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -937,10 +1067,16 @@ const texts = computed(() => {
         of: '共',
         entries: '条记录',
          exportCSV: '导出CSV',
-         exportPDF: '导出PDF',
-         exportError: '导出失败，请重试',
-         largeExportNotification: '数据量较大，正在后台生成PDF。完成后将发送邮件通知。',
-         exportTime: '导出时间',
+        exportPDF: '导出PDF',
+        exportError: '导出失败，请重试',
+        largeExportNotification: '数据量较大，正在后台生成PDF。完成后将发送邮件通知。',
+        exportTime: '导出时间',
+        bulkEmail: '批量邮件',
+        clearSelection: '清除选择',
+        selectedUsers: '位用户',
+        selectItem: '选择项目',
+        selectAll: '全选',
+        close: '关闭',
       }
     : {
         forumPosts: 'Forum Posts',
@@ -965,10 +1101,16 @@ const texts = computed(() => {
         of: 'of',
         entries: 'entries',
          exportCSV: 'Export CSV',
-         exportPDF: 'Export PDF',
-         exportError: 'Export failed, please try again',
-         largeExportNotification: 'Large dataset detected. PDF is being generated in background. You will receive an email notification when ready.',
-         exportTime: 'Export Time',
+        exportPDF: 'Export PDF',
+        exportError: 'Export failed, please try again',
+        largeExportNotification: 'Large dataset detected. PDF is being generated in background. You will receive an email notification when ready.',
+        exportTime: 'Export Time',
+        bulkEmail: 'Bulk Email',
+        clearSelection: 'Clear Selection',
+        selectedUsers: 'selected users',
+        selectItem: 'Select item',
+        selectAll: 'Select all',
+        close: 'Close'
       }
 })
 </script>

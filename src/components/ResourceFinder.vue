@@ -510,20 +510,35 @@ const initMap = async () => {
   await nextTick()
   if (!mapContainer.value) return
   
-  // Initialize map centered on Melbourne
-  map = L.map(mapContainer.value).setView([-37.8136, 144.9631], 13)
-  
-  // Add OpenStreetMap tiles
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19
-  }).addTo(map)
-  
-  // Add markers for resources
-  addResourceMarkers()
-  
-  // Try to get user location
-  getCurrentLocation()
+  try {
+    // Initialize map centered on Melbourne
+    map = L.map(mapContainer.value).setView([-37.8136, 144.9631], 13)
+    
+    // Add OpenStreetMap tiles with error handling
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+      errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+      retryUrl: true,
+      timeout: 10000
+    })
+    
+    tileLayer.on('tileerror', (e) => {
+      console.warn('Tile loading error:', e)
+    })
+    
+    tileLayer.addTo(map)
+    
+    // Add markers for resources
+    addResourceMarkers()
+    
+    // Try to get user location (but don't block if it fails)
+    setTimeout(() => {
+      getCurrentLocation()
+    }, 1000)
+  } catch (error) {
+    console.error('Map initialization error:', error)
+  }
 }
 
 // Add resource markers to map
@@ -578,7 +593,7 @@ const clearMarkers = () => {
 // Get current location
 const getCurrentLocation = () => {
   if (!navigator.geolocation) {
-    alert(texts.value.locationError)
+    console.warn('Geolocation is not supported by this browser')
     return
   }
   
@@ -586,40 +601,63 @@ const getCurrentLocation = () => {
   
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      const { latitude, longitude } = position.coords
-      userLocation.value = { lat: latitude, lng: longitude }
-      
-      // Add user marker
-      if (userMarker) {
-        map.removeLayer(userMarker)
+      try {
+        const { latitude, longitude } = position.coords
+        userLocation.value = { lat: latitude, lng: longitude }
+        
+        // Add user marker
+        if (userMarker && map) {
+          map.removeLayer(userMarker)
+        }
+        
+        if (map) {
+          userMarker = L.marker([latitude, longitude], {
+            icon: L.divIcon({
+              html: '<div class="user-marker">📍</div>',
+              className: 'user-div-icon',
+              iconSize: [20, 20],
+              iconAnchor: [10, 20]
+            })
+          }).addTo(map).bindPopup('您的位置')
+          
+          // Update search location
+          searchLocation.value = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+          
+          // Center map on user location
+          map.setView([latitude, longitude], 15)
+        }
+        
+        gettingLocation.value = false
+      } catch (error) {
+        console.error('Error processing geolocation:', error)
+        gettingLocation.value = false
       }
-      
-      userMarker = L.marker([latitude, longitude], {
-        icon: L.divIcon({
-          html: '<div class="user-marker">📍</div>',
-          className: 'user-div-icon',
-          iconSize: [20, 20],
-          iconAnchor: [10, 20]
-        })
-      }).addTo(map).bindPopup('您的位置')
-      
-      // Update search location
-      searchLocation.value = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
-      
-      // Center map on user location
-      map.setView([latitude, longitude], 15)
-      
-      gettingLocation.value = false
     },
     (error) => {
-      console.error('Geolocation error:', error)
-      alert(texts.value.locationError)
+      console.warn('Geolocation error:', error.message || error)
+      // Don't show alert for geolocation errors, just log them
       gettingLocation.value = false
+      
+      // Handle specific error codes
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          console.warn('User denied the request for Geolocation.')
+          break
+        case error.POSITION_UNAVAILABLE:
+          console.warn('Location information is unavailable.')
+          break
+        case error.TIMEOUT:
+          console.warn('The request to get user location timed out.')
+          break
+        default:
+          console.warn('An unknown error occurred.')
+          break
+      }
     },
     {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 300000
+      enableHighAccuracy: false,
+      timeout: 15000,
+      maximumAge: 600000
     }
   )
 }
@@ -787,11 +825,21 @@ const getCategoryClass = (type) => {
 
 // Lifecycle hooks
 onMounted(() => {
-  initMap()
+  // Initialize map with error handling
+  try {
+    initMap()
+  } catch (error) {
+    console.error('Failed to initialize map:', error)
+  }
+  
   // Load saved itinerary
-  const saved = localStorage.getItem('migrantcare-itinerary')
-  if (saved) {
-    savedLocations.value = JSON.parse(saved)
+  try {
+    const saved = localStorage.getItem('migrantcare-itinerary')
+    if (saved) {
+      savedLocations.value = JSON.parse(saved)
+    }
+  } catch (error) {
+    console.error('Failed to load saved itinerary:', error)
   }
 })
 

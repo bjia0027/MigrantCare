@@ -119,6 +119,29 @@ const auditLogSchema = Joi.object({
   requestId: Joi.string().uuid().optional()
 })
 
+// Bulk email schema
+const bulkEmailSchema = Joi.object({
+  recipients: Joi.array().items(Joi.object({
+    email: Joi.string().email().required(),
+    name: Joi.string().optional(),
+    phone: Joi.string().optional()
+  })).min(1).max(1000).required(),
+  subject: Joi.string().min(1).max(200).required(),
+  body: Joi.string().min(1).max(10000).required(),
+  attachments: Joi.array().items(Joi.object({
+    filename: Joi.string().required(),
+    path: Joi.string().required(),
+    type: Joi.string().required(),
+    size: Joi.number().max(10 * 1024 * 1024)
+  })).max(5).optional(),
+  batchSize: Joi.number().min(1).max(50).default(10),
+  delayBetweenBatches: Joi.number().min(1000).max(60000).default(2000),
+  requestId: Joi.string().uuid().required()
+})
+
+// In-memory storage for bulk email progress
+const bulkEmailProgress = new Map()
+
 // Cloud Function 1: Send Email with Security & Idempotency
 exports.sendEmail = functions.https.onRequest(async (req, res) => {
   const startTime = Date.now()
@@ -553,6 +576,71 @@ exports.auditLog = functions.https.onRequest(async (req, res) => {
   })
 })
 
+// Firebase Auth triggers
+exports.onUserCreate = functions.auth.user().onCreate(async (user) => {
+  try {
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || user.email?.split('@')[0] || '',
+      photoURL: user.photoURL || null,
+      role: 'user', // 默认角色为普通用户
+      isActive: true,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      preferences: {
+        language: 'zh',
+        notifications: true,
+        emailUpdates: true
+      },
+      profile: {
+        firstName: '',
+        lastName: '',
+        phone: '',
+        dateOfBirth: null,
+        address: '',
+        emergencyContact: ''
+      }
+    }
+
+    // 检查是否为管理员邮箱
+    if (user.email && (user.email.includes('admin') || user.email === 'admin@migrantcare.com')) {
+      userData.role = 'admin'
+    }
+
+    await admin.firestore().collection('users').doc(user.uid).set(userData)
+    
+    console.log('User document created successfully:', user.uid)
+    
+    // 记录用户创建日志
+    await admin.firestore().collection('auditLogs').add({
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      uid: user.uid,
+      action: 'user_created',
+      details: {
+        email: user.email,
+        role: userData.role
+      },
+      level: 'info'
+    })
+    
+  } catch (error) {
+    console.error('Error creating user document:', error)
+    
+    // 记录错误日志
+    await admin.firestore().collection('auditLogs').add({
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      uid: user.uid,
+      action: 'user_creation_failed',
+      details: {
+        error: error.message,
+        email: user.email
+      },
+      level: 'error'
+    })
+  }
+})
+
 // Legacy functions for backward compatibility
 exports.onUserDelete = functions.auth.user().onDelete((user) => {
   console.log('User deleted:', user.uid)
@@ -614,4 +702,404 @@ exports.getAuthLogs = functions.https.onCall(async (data, context) => {
     id: doc.id,
     ...doc.data(),
   }))
+})
+
+// Bulk Email Function with Batch Processing and Progress Tracking
+exports.bulkEmail = functions.https.onRequest(async (req, res) => {
+  const startTime = Date.now()
+  let user = null
+  let logData = null
+  
+  return corsHandler(req, res, async () => {
+    try {
+      // Method validation
+      if (req.method !== 'POST') {
+        const latency = Date.now() - startTime
+        logData = createStructuredLog(null, '/api/bulk-email', 405, latency, 'METHOD_NOT_ALLOWED')
+        await logToFirestore(logData)
+        return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' })
+      }
+
+      // Authentication
+      try {
+        user = await authenticateUser(req)
+      } catch (error) {
+        const latency = Date.now() - startTime
+        const errorCode = error.message === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : 'INVALID_TOKEN'
+        logData = createStructuredLog(null, '/api/bulk-email', 401, latency, errorCode)
+        await logToFirestore(logData)
+        return res.status(401).json({ error: 'Authentication failed', code: errorCode })
+      }
+
+      // Rate limiting (stricter for bulk emails)
+      const clientIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      if (!checkRateLimit(user.uid, clientIP, 'bulk-email', 2, 3600000)) { // 2 bulk emails per hour
+        const latency = Date.now() - startTime
+        logData = createStructuredLog(user.uid, '/api/bulk-email', 429, latency, 'RATE_LIMIT_EXCEEDED')
+        await logToFirestore(logData)
+        return res.status(429).json({ error: 'Rate limit exceeded', code: 'RATE_LIMIT_EXCEEDED' })
+      }
+
+      // Input validation
+      const { error, value } = bulkEmailSchema.validate(req.body)
+      if (error) {
+        const latency = Date.now() - startTime
+        logData = createStructuredLog(user.uid, '/api/bulk-email', 400, latency, 'VALIDATION_ERROR')
+        await logToFirestore(logData)
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          code: 'VALIDATION_ERROR',
+          details: error.details.map(d => d.message)
+        })
+      }
+
+      const { recipients, subject, body, attachments, batchSize, delayBetweenBatches, requestId } = value
+
+      // Idempotency check
+      if (requestHistory.has(requestId)) {
+        const existingResult = requestHistory.get(requestId)
+        const latency = Date.now() - startTime
+        logData = createStructuredLog(user.uid, '/api/bulk-email', 200, latency, null, requestId)
+        logData.idempotent = true
+        await logToFirestore(logData)
+        return res.status(200).json(existingResult)
+      }
+
+      // Initialize progress tracking
+      const progressData = {
+        requestId,
+        uid: user.uid,
+        total: recipients.length,
+        sent: 0,
+        failed: 0,
+        inProgress: true,
+        startTime: new Date().toISOString(),
+        batches: Math.ceil(recipients.length / batchSize),
+        currentBatch: 0,
+        errors: []
+      }
+      
+      bulkEmailProgress.set(requestId, progressData)
+
+      // Process attachments (same as single email)
+      let processedAttachments = []
+      if (attachments && attachments.length > 0) {
+        try {
+          for (const attachment of attachments) {
+            const file = admin.storage().bucket().file(attachment.path)
+            const [url] = await file.getSignedUrl({
+              action: 'read',
+              expires: Date.now() + 5 * 60 * 1000,
+            })
+
+            const response = await fetch(url)
+            if (!response.ok) {
+              throw new Error(`Failed to download file: ${response.statusText}`)
+            }
+
+            const buffer = await response.arrayBuffer()
+            processedAttachments.push({
+              content: Buffer.from(buffer).toString('base64'),
+              filename: attachment.filename,
+              type: attachment.type,
+              disposition: 'attachment',
+            })
+          }
+        } catch (attachmentError) {
+          const latency = Date.now() - startTime
+          logData = createStructuredLog(user.uid, '/api/bulk-email', 500, latency, 'ATTACHMENT_PROCESSING_ERROR', requestId)
+          await logToFirestore(logData)
+          
+          progressData.inProgress = false
+          progressData.error = 'Failed to process attachments'
+          
+          const failureResult = {
+            success: false,
+            error: 'Failed to process attachments',
+            code: 'ATTACHMENT_PROCESSING_ERROR',
+            requestId,
+            progress: progressData
+          }
+          requestHistory.set(requestId, failureResult)
+          return res.status(500).json(failureResult)
+        }
+      }
+
+      // Start async bulk sending process
+      setImmediate(async () => {
+        await processBulkEmail({
+          recipients,
+          subject,
+          body,
+          processedAttachments,
+          batchSize,
+          delayBetweenBatches,
+          requestId,
+          user,
+          progressData
+        })
+      })
+
+      // Return immediate response with progress tracking info
+      const initialResult = {
+        success: true,
+        message: 'Bulk email processing started',
+        requestId,
+        progress: {
+          total: recipients.length,
+          sent: 0,
+          failed: 0,
+          inProgress: true
+        }
+      }
+      
+      requestHistory.set(requestId, initialResult)
+      
+      const latency = Date.now() - startTime
+      logData = createStructuredLog(user.uid, '/api/bulk-email', 202, latency, null, requestId)
+      logData.recipientCount = recipients.length
+      await logToFirestore(logData)
+      
+      return res.status(202).json(initialResult)
+      
+    } catch (error) {
+      console.error('Bulk email error:', error)
+      
+      const latency = Date.now() - startTime
+      logData = createStructuredLog(user?.uid, '/api/bulk-email', 500, latency, 'INTERNAL_ERROR', req.body?.requestId)
+      await logToFirestore(logData)
+      
+      const failureResult = {
+        success: false,
+        error: 'Internal server error',
+        code: 'INTERNAL_ERROR',
+        requestId: req.body?.requestId
+      }
+      
+      if (req.body?.requestId) {
+        requestHistory.set(req.body.requestId, failureResult)
+        if (bulkEmailProgress.has(req.body.requestId)) {
+          const progress = bulkEmailProgress.get(req.body.requestId)
+          progress.inProgress = false
+          progress.error = 'Internal server error'
+        }
+      }
+      
+      return res.status(500).json(failureResult)
+    }
+  })
+})
+
+// Helper function to process bulk emails in batches
+const processBulkEmail = async ({
+  recipients,
+  subject,
+  body,
+  processedAttachments,
+  batchSize,
+  delayBetweenBatches,
+  requestId,
+  user,
+  progressData
+}) => {
+  try {
+    // Create batches
+    const batches = []
+    for (let i = 0; i < recipients.length; i += batchSize) {
+      batches.push(recipients.slice(i, i + batchSize))
+    }
+
+    // Process each batch
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex]
+      progressData.currentBatch = batchIndex + 1
+      
+      // Process batch in parallel
+      const batchPromises = batch.map(async (recipient) => {
+        try {
+          // Replace variables in subject and body
+          const personalizedSubject = replaceEmailVariables(subject, recipient, user)
+          const personalizedBody = replaceEmailVariables(body, recipient, user)
+          
+          const msg = {
+            to: recipient.email,
+            from: 'noreply@migrantcare.com',
+            subject: personalizedSubject,
+            html: personalizedBody,
+            attachments: processedAttachments,
+          }
+
+          const [response] = await sgMail.send(msg)
+          const messageId = response.headers['x-message-id'] || `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          
+          progressData.sent++
+          
+          // Log individual email success
+          await logToFirestore({
+            timestamp: new Date().toISOString(),
+            uid: user.uid,
+            action: 'bulk_email_sent',
+            details: { 
+              recipient: recipient.email, 
+              subject: personalizedSubject, 
+              messageId,
+              bulkRequestId: requestId
+            },
+            requestId: `${requestId}_${recipient.email}`
+          })
+          
+          return { success: true, recipient: recipient.email, messageId }
+          
+        } catch (emailError) {
+          console.error(`Failed to send email to ${recipient.email}:`, emailError)
+          progressData.failed++
+          progressData.errors.push({
+            recipient: recipient.email,
+            error: emailError.message,
+            timestamp: new Date().toISOString()
+          })
+          
+          return { success: false, recipient: recipient.email, error: emailError.message }
+        }
+      })
+      
+      await Promise.all(batchPromises)
+      
+      // Delay between batches (except for the last batch)
+      if (batchIndex < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, delayBetweenBatches))
+      }
+    }
+    
+    // Mark as completed
+    progressData.inProgress = false
+    progressData.endTime = new Date().toISOString()
+    
+    // Update final result
+    const finalResult = {
+      success: true,
+      message: 'Bulk email completed',
+      requestId,
+      progress: {
+        total: progressData.total,
+        sent: progressData.sent,
+        failed: progressData.failed,
+        inProgress: false,
+        completed: true
+      },
+      summary: {
+        totalRecipients: progressData.total,
+        successfulSends: progressData.sent,
+        failedSends: progressData.failed,
+        batchesProcessed: progressData.batches,
+        startTime: progressData.startTime,
+        endTime: progressData.endTime
+      }
+    }
+    
+    requestHistory.set(requestId, finalResult)
+    
+    // Log completion
+    await logToFirestore({
+      timestamp: new Date().toISOString(),
+      uid: user.uid,
+      action: 'bulk_email_completed',
+      details: {
+        requestId,
+        totalRecipients: progressData.total,
+        successfulSends: progressData.sent,
+        failedSends: progressData.failed
+      }
+    })
+    
+  } catch (error) {
+    console.error('Bulk email processing error:', error)
+    progressData.inProgress = false
+    progressData.error = error.message
+    
+    const errorResult = {
+      success: false,
+      error: 'Bulk email processing failed',
+      code: 'PROCESSING_ERROR',
+      requestId,
+      progress: progressData
+    }
+    
+    requestHistory.set(requestId, errorResult)
+  }
+}
+
+// Helper function to replace variables in email content
+const replaceEmailVariables = (text, recipient, user) => {
+  const now = new Date()
+  const variables = {
+    name: recipient.name || recipient.email.split('@')[0],
+    email: recipient.email,
+    phone: recipient.phone || '',
+    date: now.toLocaleDateString(),
+    time: now.toLocaleTimeString(),
+    sender: user.name || user.email || 'MigrantCare 团队'
+  }
+  
+  let result = text
+  Object.keys(variables).forEach(key => {
+    const regex = new RegExp(`{{${key}}}`, 'g')
+    result = result.replace(regex, variables[key])
+  })
+  
+  return result
+}
+
+// Get bulk email progress
+exports.getBulkEmailProgress = functions.https.onRequest(async (req, res) => {
+  const startTime = Date.now()
+  let user = null
+  
+  return corsHandler(req, res, async () => {
+    try {
+      if (req.method !== 'GET') {
+        return res.status(405).json({ error: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' })
+      }
+
+      // Authentication
+      try {
+        user = await authenticateUser(req)
+      } catch (error) {
+        return res.status(401).json({ error: 'Authentication failed', code: 'UNAUTHORIZED' })
+      }
+
+      const requestId = req.query.requestId
+      if (!requestId) {
+        return res.status(400).json({ error: 'Request ID is required', code: 'MISSING_REQUEST_ID' })
+      }
+
+      const progress = bulkEmailProgress.get(requestId)
+      if (!progress) {
+        return res.status(404).json({ error: 'Progress not found', code: 'PROGRESS_NOT_FOUND' })
+      }
+
+      // Check if user owns this request
+      if (progress.uid !== user.uid) {
+        return res.status(403).json({ error: 'Access denied', code: 'ACCESS_DENIED' })
+      }
+
+      return res.status(200).json({
+        success: true,
+        requestId,
+        progress: {
+          total: progress.total,
+          sent: progress.sent,
+          failed: progress.failed,
+          inProgress: progress.inProgress,
+          currentBatch: progress.currentBatch,
+          totalBatches: progress.batches,
+          errors: progress.errors.slice(-10) // Return last 10 errors
+        }
+      })
+      
+    } catch (error) {
+      console.error('Get bulk email progress error:', error)
+      return res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' })
+    }
+  })
 })

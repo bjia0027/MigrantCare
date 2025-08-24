@@ -69,8 +69,8 @@
             <div class="col-md-6">
               <h3 class="h6">{{ texts.publicUrl }}</h3>
               <p>
-                <a href="https://migrant-care.vercel.app" target="_blank" class="d-flex align-items-center">
-                  <span>https://migrant-care.vercel.app</span>
+                <a :href="deploymentUrl" target="_blank" class="d-flex align-items-center">
+                  <span>{{ deploymentUrl }}</span>
                   <i class="fas fa-external-link-alt ms-2 small"></i>
                 </a>
               </p>
@@ -232,6 +232,14 @@ const props = defineProps({
 
 const lang = ref(props.lang)
 
+// 动态部署地址：优先使用环境变量，其次回退到当前 origin，最后回退到本地开发地址
+const deploymentUrl = computed(() => {
+  const envUrl = import.meta.env.VITE_PUBLIC_URL
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim() !== '') return envUrl
+  if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin
+  return 'http://localhost:5173'
+})
+
 // 健康检查相关状态
 const healthStatus = ref(null)
 const healthError = ref(null)
@@ -265,7 +273,7 @@ const checkHealth = async () => {
     lastCheckTime.value = new Date()
     console.log('健康检查成功:', response)
   } catch (error) {
-    console.error('健康检查失败:', error)
+    console.warn('健康检查失败:', error.message)
     healthError.value = error.message || '健康检查失败'
     healthStatus.value = null
   } finally {

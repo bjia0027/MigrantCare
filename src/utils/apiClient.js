@@ -193,6 +193,34 @@ async function requestWithRetry(endpoint, options = {}) {
  */
 class ApiClient {
   /**
+   * 通用 GET 请求
+   * @param {string} endpoint - API 端点
+   * @param {Object} options - 请求选项
+   */
+  async get(endpoint, options = {}) {
+    return requestWithRetry(endpoint, {
+      method: 'GET',
+      requireAuth: true,
+      ...options
+    })
+  }
+
+  /**
+   * 通用 POST 请求
+   * @param {string} endpoint - API 端点
+   * @param {Object} data - 请求数据
+   * @param {Object} options - 请求选项
+   */
+  async post(endpoint, data = null, options = {}) {
+    return requestWithRetry(endpoint, {
+      method: 'POST',
+      body: data,
+      requireAuth: true,
+      ...options
+    })
+  }
+
+  /**
    * 健康检查
    */
   async checkHealth() {
@@ -285,6 +313,38 @@ class ApiClient {
     const queryString = new URLSearchParams(params).toString()
     const endpoint = queryString ? `/getAuthLogs?${queryString}` : '/getAuthLogs'
     return requestWithRetry(endpoint, {
+      requireAuth: true
+    })
+  }
+
+  /**
+   * 发送批量邮件
+   * @param {Object} bulkEmailData - 批量邮件数据
+   * @param {string} bulkEmailData.subject - 邮件主题
+   * @param {string} bulkEmailData.body - 邮件内容
+   * @param {Array} bulkEmailData.recipients - 收件人列表
+   * @param {Array} bulkEmailData.attachments - 附件列表（可选）
+   * @param {string} bulkEmailData.requestId - 请求ID（可选，用于幂等性）
+   */
+  async sendBulkEmail(bulkEmailData) {
+    // 生成请求ID（如果未提供）
+    if (!bulkEmailData.requestId) {
+      bulkEmailData.requestId = `bulk_email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    }
+    
+    return requestWithRetry('/api/bulk-email', {
+      method: 'POST',
+      body: bulkEmailData,
+      requireAuth: true
+    })
+  }
+
+  /**
+   * 获取批量邮件发送进度
+   * @param {string} requestId - 请求ID
+   */
+  async getBulkEmailProgress(requestId) {
+    return requestWithRetry(`/api/bulk-email-progress?requestId=${requestId}`, {
       requireAuth: true
     })
   }

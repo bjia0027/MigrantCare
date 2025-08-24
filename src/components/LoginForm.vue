@@ -7,13 +7,13 @@
           <div class="tab-buttons">
             <button
               :class="['btn', isLoginMode ? 'btn-primary' : 'btn-outline-primary']"
-              @click="isLoginMode = true"
+              @click="switchToLogin"
             >
               {{ texts.login }}
             </button>
             <button
               :class="['btn', !isLoginMode ? 'btn-primary' : 'btn-outline-primary']"
-              @click="isLoginMode = false"
+              @click="switchToRegister"
             >
               {{ texts.register }}
             </button>
@@ -226,8 +226,8 @@
 
 <script setup>
 // Vue Logic
-import { ref, computed, inject } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, inject, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 // Props for language support
@@ -239,9 +239,30 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const isLoginMode = ref(true)
+
+// Watch for route changes to switch between login and register modes
+watch(
+  () => route.path,
+  (newPath) => {
+    if (newPath === '/register') {
+      isLoginMode.value = false
+    } else if (newPath === '/login') {
+      isLoginMode.value = true
+    }
+  },
+  { immediate: true }
+)
+
+// Set initial mode based on current route
+onMounted(() => {
+  if (route.path === '/register') {
+    isLoginMode.value = false
+  }
+})
 const loading = ref(false)
 const errorMessage = ref('')
 const showResetPassword = ref(false)
@@ -441,6 +462,17 @@ const handleResetPassword = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Mode switching methods
+const switchToLogin = () => {
+  isLoginMode.value = true
+  router.push('/login')
+}
+
+const switchToRegister = () => {
+  isLoginMode.value = false
+  router.push('/register')
 }
 const translateError = (errorCode) => {
   console.log('Translating error code:', errorCode)

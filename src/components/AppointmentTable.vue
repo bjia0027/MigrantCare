@@ -1,350 +1,252 @@
 <template>
   <div class="data-table-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="mb-0">{{ texts.appointmentList }}</h2>
-      <div class="d-flex gap-2">
-        <!-- 导出按钮 -->
-        <div class="btn-group" role="group" aria-label="Export options">
-          <button 
-            class="btn btn-outline-success" 
-            @click="exportToCSV"
-            :disabled="isExporting"
-            :title="texts.exportCSV"
-          >
-            <span v-if="isExporting && exportType === 'csv'" class="spinner-border spinner-border-sm me-2"></span>
-            <i v-else class="fas fa-file-csv me-2"></i>
-            {{ texts.exportCSV }}
-          </button>
-          <button 
-            class="btn btn-outline-danger" 
-            @click="exportToPDF"
-            :disabled="isExporting"
-            :title="texts.exportPDF"
-          >
-            <span v-if="isExporting && exportType === 'pdf'" class="spinner-border spinner-border-sm me-2"></span>
-            <i v-else class="fas fa-file-pdf me-2"></i>
-            {{ texts.exportPDF }}
-          </button>
-        </div>
-        <button 
-          class="btn btn-outline-primary" 
-          @click="showReports = !showReports"
-          :disabled="isLoadingReports"
-        >
-          <i class="fas fa-chart-bar me-2"></i>
-          {{ texts.viewReports }}
+    <div class="table-header">
+      <h2>{{ texts.appointmentManagement }}</h2>
+
+      <!-- 批量操作按钮 -->
+      <div class="bulk-actions" v-if="selectedItems.length > 0">
+        <button class="btn btn-primary me-2" @click="openBulkEmailModal">
+          <i class="fas fa-envelope me-1"></i>
+          {{ texts.bulkEmail }} ({{ selectedItems.length }})
+        </button>
+        <button class="btn btn-outline-secondary" @click="clearSelection">
+          <i class="fas fa-times me-1"></i>
+          {{ texts.clearSelection }}
         </button>
       </div>
-    </div>
 
-    <!-- 预约报表区域 -->
-    <div v-if="showReports" class="reports-section mb-4">
-      <div class="card">
-        <div class="card-header bg-info text-white">
-          <h5 class="mb-0">
-            <i class="fas fa-chart-line me-2"></i>
-            {{ texts.appointmentReports }}
-          </h5>
-        </div>
-        <div class="card-body">
-          <!-- 日期范围选择 -->
-          <div class="row mb-3">
-            <div class="col-md-4">
-              <label for="startDate" class="form-label">{{ texts.startDate }}</label>
-              <input
-                type="date"
-                class="form-control"
-                id="startDate"
-                v-model="reportFilters.startDate"
-              />
-            </div>
-            <div class="col-md-4">
-              <label for="endDate" class="form-label">{{ texts.endDate }}</label>
-              <input
-                type="date"
-                class="form-control"
-                id="endDate"
-                v-model="reportFilters.endDate"
-              />
-            </div>
-            <div class="col-md-4 d-flex align-items-end">
-              <button 
-                class="btn btn-primary me-2" 
-                @click="loadReports"
-                :disabled="isLoadingReports || !reportFilters.startDate || !reportFilters.endDate"
-              >
-                <span v-if="isLoadingReports" class="spinner-border spinner-border-sm me-2"></span>
-                <i v-else class="fas fa-sync-alt me-2"></i>
-                {{ texts.generateReport }}
-              </button>
-              <button 
-                class="btn btn-outline-secondary" 
-                @click="resetReportFilters"
-              >
-                {{ texts.reset }}
-              </button>
-            </div>
-          </div>
-
-          <!-- 报表结果 -->
-          <div v-if="reportData" class="reports-results">
-            <div class="row">
-              <div class="col-md-3 mb-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number text-primary">{{ reportData.totalAppointments || 0 }}</div>
-                  <div class="stat-label">{{ texts.totalAppointments }}</div>
-                </div>
-              </div>
-              <div class="col-md-3 mb-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number text-success">{{ reportData.completedAppointments || 0 }}</div>
-                  <div class="stat-label">{{ texts.completedAppointments }}</div>
-                </div>
-              </div>
-              <div class="col-md-3 mb-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number text-warning">{{ reportData.pendingAppointments || 0 }}</div>
-                  <div class="stat-label">{{ texts.pendingAppointments }}</div>
-                </div>
-              </div>
-              <div class="col-md-3 mb-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number text-danger">{{ reportData.cancelledAppointments || 0 }}</div>
-                  <div class="stat-label">{{ texts.cancelledAppointments }}</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 按状态分布图表 -->
-            <div v-if="reportData.statusDistribution" class="mt-4">
-              <h6>{{ texts.statusDistribution }}</h6>
-              <div class="progress-stacked">
-                <div 
-                  v-for="(item, status) in reportData.statusDistribution" 
-                  :key="status"
-                  class="progress-bar"
-                  :class="getStatusProgressClass(status)"
-                  :style="{ width: getStatusPercentage(item.count) + '%' }"
-                  :title="`${getStatusText(status)}: ${item.count}`"
-                >
-                  {{ item.count }}
-                </div>
-              </div>
-            </div>
-
-            <!-- 热门诊所 -->
-            <div v-if="reportData.topClinics && reportData.topClinics.length > 0" class="mt-4">
-              <h6>{{ texts.topClinics }}</h6>
-              <div class="list-group">
-                <div 
-                  v-for="clinic in reportData.topClinics.slice(0, 5)" 
-                  :key="clinic.name"
-                  class="list-group-item d-flex justify-content-between align-items-center"
-                >
-                  {{ clinic.name }}
-                  <span class="badge bg-primary rounded-pill">{{ clinic.count }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 报表错误 -->
-          <div v-if="reportError" class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            {{ texts.reportError }}: {{ reportError }}
-          </div>
-        </div>
+      <!-- 导出按钮 -->
+      <div class="export-buttons">
+        <button 
+          class="btn btn-outline-success me-2" 
+          @click="exportToCSV"
+          :disabled="isExporting"
+          :aria-label="texts.exportCSV"
+        >
+          <span v-if="isExporting" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-file-csv me-1"></i>
+          {{ texts.exportCSV }}
+        </button>
+        <button 
+          class="btn btn-outline-danger" 
+          @click="exportToPDF"
+          :disabled="isExporting"
+          :aria-label="texts.exportPDF"
+        >
+          <span v-if="isExporting" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-file-pdf me-1"></i>
+          {{ texts.exportPDF }}
+        </button>
       </div>
     </div>
 
     <!-- 全局搜索 -->
-    <div class="mb-3">
+    <div class="search-container mb-3">
       <div class="input-group">
-        <span class="input-group-text"><i class="fas fa-search"></i></span>
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
         <input
           type="text"
           class="form-control"
+          :placeholder="texts.globalSearch"
           v-model="globalSearch"
-          :placeholder="texts.searchAllFields"
-          aria-label="Search all fields"
-        />
-        <button 
-          v-if="globalSearch" 
-          class="btn btn-outline-secondary" 
-          type="button"
-          @click="globalSearch = ''"
-        >
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- 列筛选 -->
-    <div class="row mb-3">
-      <div class="col-md-3 mb-2">
-        <label for="userFilter" class="form-label">{{ texts.user }}</label>
-        <input
-          type="text"
-          class="form-control"
-          id="userFilter"
-          v-model="filters.user"
-          :placeholder="texts.filterByUser"
-        />
-      </div>
-      <div class="col-md-3 mb-2">
-        <label for="dateFilter" class="form-label">{{ texts.date }}</label>
-        <input
-          type="date"
-          class="form-control"
-          id="dateFilter"
-          v-model="filters.date"
-        />
-      </div>
-      <div class="col-md-3 mb-2">
-        <label for="statusFilter" class="form-label">{{ texts.status }}</label>
-        <select
-          class="form-select"
-          id="statusFilter"
-          v-model="filters.status"
-        >
-          <option value="">{{ texts.all }}</option>
-          <option value="scheduled">{{ texts.scheduled }}</option>
-          <option value="completed">{{ texts.completed }}</option>
-          <option value="cancelled">{{ texts.cancelled }}</option>
-        </select>
-      </div>
-      <div class="col-md-3 mb-2">
-        <label for="clinicianFilter" class="form-label">{{ texts.clinician }}</label>
-        <input
-          type="text"
-          class="form-control"
-          id="clinicianFilter"
-          v-model="filters.clinician"
-          :placeholder="texts.filterByClinician"
         />
       </div>
     </div>
 
-    <!-- 表格 -->
+    <!-- 数据表格 -->
     <div class="table-responsive">
       <table class="table table-striped table-hover">
-        <thead>
+        <thead class="table-dark">
           <tr>
-            <th @click="sort('id')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('id')">
-              ID
-              <i v-if="sortColumn === 'id'" :class="getSortIconClass('id')"></i>
+            <th scope="col" style="width: 50px">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                :checked="isAllSelected"
+                @change="toggleSelectAll"
+              />
             </th>
-            <th @click="sort('user')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('user')">
-              {{ texts.user }}
-              <i v-if="sortColumn === 'user'" :class="getSortIconClass('user')"></i>
+            <th scope="col" class="sortable" @click="sort('patientName')">
+              {{ texts.patientName }}
+              <i :class="getSortIconClass('patientName')"></i>
             </th>
-            <th @click="sort('date')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('date')">
-              {{ texts.date }}
-              <i v-if="sortColumn === 'date'" :class="getSortIconClass('date')"></i>
+            <th scope="col" class="sortable" @click="sort('appointmentDate')">
+              {{ texts.appointmentDate }}
+              <i :class="getSortIconClass('appointmentDate')"></i>
             </th>
-            <th @click="sort('time')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('time')">
-              {{ texts.time }}
-              <i v-if="sortColumn === 'time'" :class="getSortIconClass('time')"></i>
+            <th scope="col" class="sortable" @click="sort('appointmentTime')">
+              {{ texts.appointmentTime }}
+              <i :class="getSortIconClass('appointmentTime')"></i>
             </th>
-            <th @click="sort('status')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('status')">
-              {{ texts.status }}
-              <i v-if="sortColumn === 'status'" :class="getSortIconClass('status')"></i>
-            </th>
-            <th @click="sort('clinician')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('clinician')">
-              {{ texts.clinician }}
-              <i v-if="sortColumn === 'clinician'" :class="getSortIconClass('clinician')"></i>
-            </th>
-            <th @click="sort('type')" scope="col" class="sortable" :aria-sort="getSortAriaLabel('type')">
-              {{ texts.type }}
-              <i v-if="sortColumn === 'type'" :class="getSortIconClass('type')"></i>
-            </th>
+            <th scope="col">{{ texts.service }}</th>
+            <th scope="col">{{ texts.status }}</th>
+            <th scope="col">{{ texts.actions }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="filteredData.length === 0">
-            <td colspan="7" class="text-center py-4">
-              <div class="empty-state">
-                <i class="fas fa-search fa-3x mb-3"></i>
-                <p>{{ texts.noResults }}</p>
+          <!-- 加载状态 -->
+          <tr v-if="loading">
+            <td colspan="7" class="text-center empty-state">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
               </div>
+              <p class="mb-0 mt-2">正在加载预约数据...</p>
             </td>
           </tr>
-          <tr 
-            v-for="item in paginatedData" 
-            :key="item.id"
-            tabindex="0"
+          <!-- 错误状态 -->
+          <tr v-else-if="error">
+            <td colspan="7" class="text-center empty-state">
+              <i class="fas fa-exclamation-triangle fa-3x mb-3 text-danger"></i>
+              <p class="mb-2 text-danger">{{ error }}</p>
+              <button class="btn btn-sm btn-outline-primary" @click="loadAppointments()">
+                <i class="fas fa-redo"></i> 重新加载
+              </button>
+            </td>
+          </tr>
+          <!-- 无数据状态 -->
+          <tr v-else-if="paginatedData.length === 0">
+            <td colspan="7" class="text-center empty-state">
+              <i class="fas fa-calendar-times fa-3x mb-3 text-muted"></i>
+              <p class="mb-0">{{ texts.noAppointments }}</p>
+            </td>
+          </tr>
+          <tr
+            v-for="appointment in paginatedData"
+            :key="appointment.id"
             class="table-row"
-            :class="{'table-success': item.status === 'completed', 'table-danger': item.status === 'cancelled'}"
+            :class="{ 'table-active': selectedItems.includes(appointment.id) }"
           >
-            <td>{{ item.id }}</td>
-            <td>{{ item.user }}</td>
-            <td>{{ formatDate(item.date) }}</td>
-            <td>{{ item.time }}</td>
             <td>
-              <span :class="getStatusBadgeClass(item.status)">
-                {{ getStatusText(item.status) }}
+              <input
+                type="checkbox"
+                class="form-check-input"
+                :value="appointment.id"
+                v-model="selectedItems"
+              />
+            </td>
+            <td>{{ appointment.patientName }}</td>
+            <td>{{ formatDate(appointment.appointmentDate) }}</td>
+            <td>{{ appointment.appointmentTime }}</td>
+            <td>{{ appointment.service }}</td>
+            <td>
+              <span :class="getStatusBadgeClass(appointment.status)">
+                {{ getStatusText(appointment.status) }}
               </span>
             </td>
-            <td>{{ item.clinician }}</td>
-            <td>{{ item.type }}</td>
+            <td>
+              <div class="btn-group" role="group">
+                <button
+                  class="btn btn-sm btn-outline-primary"
+                  @click="editAppointment(appointment)"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  class="btn btn-sm btn-outline-danger"
+                  @click="deleteAppointment(appointment.id)"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 分页 -->
-    <div class="d-flex justify-content-between align-items-center mt-3">
-      <div>
-        {{ texts.showing }} {{ startIndex + 1 }}-{{ endIndex }} {{ texts.of }} {{ filteredData.length }} {{ texts.entries }}
-      </div>
-      <nav aria-label="Page navigation">
-        <ul class="pagination">
-          <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <button class="page-link" @click="goToPage(1)" :disabled="currentPage === 1">
-              <i class="fas fa-angle-double-left"></i>
-            </button>
-          </li>
-          <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <button class="page-link" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
-              <i class="fas fa-angle-left"></i>
-            </button>
-          </li>
-          <li 
-            v-for="page in visiblePageNumbers" 
-            :key="page" 
-            class="page-item"
-            :class="{ active: currentPage === page }"
+    <!-- 分页导航 -->
+    <nav aria-label="Table pagination" v-if="totalPages > 1">
+      <ul class="pagination justify-content-center">
+        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+          <button class="page-link" @click="goToPage(1)" :disabled="currentPage === 1">
+            <i class="fas fa-angle-double-left"></i>
+          </button>
+        </li>
+        <li class="page-item" :class="{ disabled: currentPage === 1 }">
+          <button
+            class="page-link"
+            @click="goToPage(currentPage - 1)"
+            :disabled="currentPage === 1"
           >
-            <button class="page-link" @click="goToPage(page)">
-              {{ page }}
-            </button>
-          </li>
-          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <button class="page-link" @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages">
-              <i class="fas fa-angle-right"></i>
-            </button>
-          </li>
-          <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <button class="page-link" @click="goToPage(totalPages)" :disabled="currentPage === totalPages">
-              <i class="fas fa-angle-double-right"></i>
-            </button>
-          </li>
-        </ul>
-      </nav>
+            <i class="fas fa-angle-left"></i>
+          </button>
+        </li>
+        <li
+          v-for="page in visiblePageNumbers"
+          :key="page"
+          class="page-item"
+          :class="{ active: page === currentPage }"
+        >
+          <button class="page-link" @click="goToPage(page)">
+            {{ page }}
+          </button>
+        </li>
+        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+          <button
+            class="page-link"
+            @click="goToPage(currentPage + 1)"
+            :disabled="currentPage === totalPages"
+          >
+            <i class="fas fa-angle-right"></i>
+          </button>
+        </li>
+        <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+          <button
+            class="page-link"
+            @click="goToPage(totalPages)"
+            :disabled="currentPage === totalPages"
+          >
+            <i class="fas fa-angle-double-right"></i>
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- 批量邮件模态框 -->
+  <div
+    v-if="showBulkEmailModal"
+    class="modal fade show"
+    style="display: block; background-color: rgba(0, 0, 0, 0.5)"
+    tabindex="-1"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-envelope me-2"></i>
+            {{ texts.bulkEmail }} ({{ selectedItems.length }} {{ texts.selectedUsers }})
+          </h5>
+          <button
+            type="button"
+            class="btn-close"
+            @click="closeBulkEmailModal"
+            :aria-label="texts.close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <EmailSender
+            :lang="lang"
+            :preselected-recipients="getSelectedUsers()"
+            @email-sent="closeBulkEmailModal"
+            @close="closeBulkEmailModal"
+          ></EmailSender>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import apiClient from '../utils/apiClient'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import EmailSender from './EmailSender.vue'
+// import apiClient from '../utils/apiClient' // removed unused import
+import { useAuthStore } from '../stores/auth'
+import { getAllAppointments, getUserAppointments, cancelAppointment as cancelAppointmentAPI, deleteAppointment as deleteAppointmentAPI } from '../api/appointmentAPI'
 
-// 导出相关的响应式变量
-const isExporting = ref(false)
-const exportType = ref('')
-
-// Props for language support
 const props = defineProps({
   lang: {
     type: String,
@@ -353,540 +255,252 @@ const props = defineProps({
 })
 
 const route = useRoute()
-const router = useRouter()
+// const router = useRouter() // removed unused variable
+const authStore = useAuthStore()
 
-const appointments = ref([
-  {
-    id: 1,
-    patientName: 'John Smith',
-    doctorName: 'Dr. Wang',
-    date: '2024-01-15',
-    time: '09:00',
-    type: 'general',
-    status: 'confirmed',
-    notes: 'Regular checkup'
-  },
-  {
-    id: 2,
-    patientName: 'Maria Garcia',
-    doctorName: 'Dr. Li',
-    date: '2024-01-16',
-    time: '14:30',
-    type: 'specialist',
-    status: 'pending',
-    notes: 'Follow-up consultation'
-  },
-  {
-    id: 3,
-    patientName: 'Ahmed Hassan',
-    doctorName: 'Dr. Chen',
-    date: '2024-01-17',
-    time: '11:00',
-    type: 'emergency',
-    status: 'cancelled',
-    notes: 'Emergency consultation'
-  }
-])
+// 导出相关
+const isExporting = ref(false)
 
-const currentPage = ref(1)
-const itemsPerPage = 10
-const sortColumn = ref('date')
-const sortDirection = ref('desc')
-const globalSearch = ref('')
-const filters = ref({
-  patientName: '',
-  doctorName: '',
-  type: '',
-  status: '',
-  dateAfter: ''
+// 多选相关
+const selectedItems = ref([])
+const showBulkEmailModal = ref(false)
+
+// 预约数据
+const appointments = ref([])
+const loading = ref(false)
+const error = ref(null)
+
+// 检查是否为管理员
+const isAdmin = computed(() => {
+  return authStore.user?.role === 'admin' || authStore.user?.email === 'admin@migrantcare.com'
 })
 
-// 预约报表相关
-const showReports = ref(false)
-const isLoadingReports = ref(false)
-const reportData = ref(null)
-const reportError = ref('')
-const reportFilters = ref({
-  startDate: '',
-  endDate: ''
-})
+// 加载预约数据
+const loadAppointments = async () => {
+  loading.value = true
+  error.value = null
 
-// 报表相关方法
-const loadReports = async () => {
-  if (!reportFilters.value.startDate || !reportFilters.value.endDate) {
-    return
-  }
-  
-  isLoadingReports.value = true
-  reportError.value = ''
-  
   try {
-    const response = await apiClient.getAppointmentReports({
-      startDate: reportFilters.value.startDate,
-      endDate: reportFilters.value.endDate
-    })
-    
-    reportData.value = response.data
-  } catch (error) {
-    console.error('Failed to load appointment reports:', error)
-    reportError.value = error.message || 'Failed to load reports'
-    
-    // 如果API调用失败，使用模拟数据作为后备
-    reportData.value = {
-      totalAppointments: 150,
-      completedAppointments: 120,
-      pendingAppointments: 20,
-      cancelledAppointments: 10,
-      statusDistribution: {
-        completed: { count: 120 },
-        pending: { count: 20 },
-        cancelled: { count: 10 }
-      },
-      topClinics: [
-        { name: 'Dr. Wang', count: 45 },
-        { name: 'Dr. Li', count: 38 },
-        { name: 'Dr. Chen', count: 32 },
-        { name: 'Dr. Zhang', count: 25 },
-        { name: 'Dr. Liu', count: 10 }
-      ]
+    const token = await authStore.getIdToken()
+    if (!token) {
+      throw new Error('用户未登录')
     }
-  } finally {
-    isLoadingReports.value = false
-  }
-}
 
-const resetReportFilters = () => {
-  reportFilters.value.startDate = ''
-  reportFilters.value.endDate = ''
-  reportData.value = null
-  reportError.value = ''
-}
-
-const getStatusProgressClass = (status) => {
-  const classes = {
-    completed: 'bg-success',
-    pending: 'bg-warning',
-    cancelled: 'bg-danger'
-  }
-  return classes[status] || 'bg-secondary'
-}
-
-const getStatusPercentage = (count) => {
-  if (!reportData.value) return 0
-  return (count / reportData.value.totalAppointments) * 100
-}
-
-const getStatusText = (status) => {
-  const statusTexts = {
-    confirmed: texts.value.confirmed,
-    completed: texts.value.completed,
-    pending: texts.value.pending,
-    cancelled: texts.value.cancelled
-  }
-  return statusTexts[status] || status
-}
-
-// 导出功能
-const exportToCSV = () => {
-  isExporting.value = true
-  exportType.value = 'csv'
-  
-  try {
-    // 获取当前筛选后的数据
-    const dataToExport = filteredData.value
-    
-    // 定义CSV列头（人类可读）
-    const headers = [
-      texts.value.user,
-      texts.value.date,
-      texts.value.time,
-      texts.value.status,
-      texts.value.clinician,
-      texts.value.type
-    ]
-    
-    // 转换数据为CSV格式
-    const csvContent = [
-      headers.join(','),
-      ...dataToExport.map(item => [
-        `"${item.user || ''}",`,
-        `"${formatDate(item.date)}",`,
-        `"${item.time || ''}",`,
-        `"${getStatusText(item.status)}",`,
-        `"${item.clinician || ''}",`,
-        `"${item.type || ''}"`
-      ].join(''))
-    ].join('\n')
-    
-    // 添加UTF-8 BOM确保Excel正确显示中文
-    const BOM = '\uFEFF'
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
-    
-    // 生成文件名
-    const now = new Date()
-    const timestamp = now.toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '-')
-    const filename = `appointments_${timestamp}.csv`
-    
-    // 下载文件
-    const link = document.createElement('a')
-    if (link.download !== undefined) {
-      const url = URL.createObjectURL(blob)
-      link.setAttribute('href', url)
-      link.setAttribute('download', filename)
-      link.style.visibility = 'hidden'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-    }
-    
-    console.log(`CSV导出完成: ${filename}, 共${dataToExport.length}条记录`)
-  } catch (error) {
-    console.error('CSV导出失败:', error)
-    alert(texts.value.exportError || '导出失败，请重试')
-  } finally {
-    isExporting.value = false
-    exportType.value = ''
-  }
-}
-
-const exportToPDF = async () => {
-  isExporting.value = true
-  exportType.value = 'pdf'
-  
-  try {
-    // 获取当前筛选后的数据
-    const dataToExport = filteredData.value
-    
-    // 检查数据量，如果超过阈值使用后台生成
-    const LARGE_DATA_THRESHOLD = 100
-    
-    if (dataToExport.length > LARGE_DATA_THRESHOLD) {
-      // 大数据量：后台异步生成
-      await exportLargePDF(dataToExport)
+    let result
+    if (isAdmin.value) {
+      // 管理员获取所有预约
+      result = await getAllAppointments(token)
     } else {
-      // 小数据量：前端生成
-      await exportSmallPDF(dataToExport)
+      // 普通用户只获取自己的预约
+      result = await getUserAppointments(token)
     }
-    
-  } catch (error) {
-    console.error('PDF导出失败:', error)
-    alert(texts.value.exportError || '导出失败，请重试')
-  } finally {
-    isExporting.value = false
-    exportType.value = ''
-  }
-}
 
-const exportSmallPDF = async (data) => {
-  try {
-    // 调用云函数生成PDF
-    const response = await apiClient.generatePDF({
-      type: 'appointments',
-      data: data,
-      filters: {
-        globalSearch: globalSearch.value,
-        ...filters.value
-      },
-      sorting: {
-        column: sortColumn.value,
-        direction: sortDirection.value
-      },
-      metadata: {
-        exportTime: new Date().toISOString(),
-        totalRecords: data.length,
-        userEmail: 'current-user@example.com' // 从认证状态获取
+    if (result.success) {
+      // 获取所有唯一的用户ID
+      const userIds = [...new Set(result.data.map(apt => apt.userId).filter(Boolean))]
+      
+      // 批量获取用户信息
+      const userMap = new Map()
+      if (userIds.length > 0) {
+        try {
+          const { collection, query, where, getDocs } = await import('firebase/firestore')
+          const { db } = await import('../firebase/config')
+          
+          // 分批查询用户信息（Firestore 的 in 查询限制为10个）
+          const batchSize = 10
+          for (let i = 0; i < userIds.length; i += batchSize) {
+            const batch = userIds.slice(i, i + batchSize)
+            const usersRef = collection(db, 'users')
+            const q = query(usersRef, where('__name__', 'in', batch))
+            const querySnapshot = await getDocs(q)
+            
+            querySnapshot.forEach(doc => {
+              const userData = doc.data()
+              userMap.set(doc.id, {
+                email: userData.email || '',
+                displayName: userData.displayName || userData.username || '',
+                phone: userData.profile?.phone || ''
+              })
+            })
+          }
+        } catch (error) {
+          console.warn('获取用户信息失败:', error)
+        }
       }
-    })
-    
-    // 下载PDF文件
-    const blob = new Blob([response.data], { type: 'application/pdf' })
-    const now = new Date()
-    const timestamp = now.toISOString().slice(0, 16).replace('T', '_').replace(/:/g, '-')
-    const filename = `appointments_${timestamp}.pdf`
-    
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', filename)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-    
-    console.log(`PDF导出完成: ${filename}`)
-  } catch (error) {
-    // 如果云函数失败，降级到前端生成
-    console.warn('云函数PDF生成失败，使用前端生成:', error)
-    await generateClientSidePDF(data)
-  }
-}
-
-const exportLargePDF = async (data) => {
-  try {
-    // 提交后台任务
-    const response = await apiClient.submitPDFExportTask({
-      type: 'appointments',
-      data: data,
-      filters: {
-        globalSearch: globalSearch.value,
-        ...filters.value
-      },
-      sorting: {
-        column: sortColumn.value,
-        direction: sortDirection.value
-      },
-      userEmail: 'current-user@example.com' // 从认证状态获取
-    })
-    
-    alert(texts.value.largeExportNotification || 
-      `数据量较大，正在后台生成PDF。完成后将发送邮件通知，任务ID: ${response.taskId}`)
-    
-  } catch (error) {
-    console.error('后台PDF任务提交失败:', error)
-    // 降级到前端生成
-    await generateClientSidePDF(data)
-  }
-}
-
-const generateClientSidePDF = async (data) => {
-  // 前端PDF生成（简化版）
-  const printContent = generatePrintTemplate(data)
-  
-  // 创建新窗口进行打印
-  const printWindow = window.open('', '_blank')
-  printWindow.document.write(printContent)
-  printWindow.document.close()
-  
-  // 等待内容加载完成后打印
-  printWindow.onload = () => {
-    printWindow.print()
-    printWindow.close()
-  }
-}
-
-const generatePrintTemplate = (data) => {
-  const now = new Date()
-  const timestamp = now.toLocaleString(props.lang === 'zh' ? 'zh-CN' : 'en-US')
-  
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>${texts.value.appointmentList} - ${timestamp}</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .metadata { margin-bottom: 20px; font-size: 12px; color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; font-weight: bold; }
-        .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; }
-        @media print { body { margin: 0; } }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>${texts.value.appointmentList}</h1>
-        <p>导出时间: ${timestamp}</p>
-      </div>
       
-      <div class="metadata">
-        <p>总记录数: ${data.length}</p>
-        <p>筛选条件: ${getFilterSummary()}</p>
-        <p>排序: ${texts.value[sortColumn.value] || sortColumn.value} (${sortDirection.value === 'asc' ? '升序' : '降序'})</p>
-      </div>
-      
-      <table>
-        <thead>
-          <tr>
-            <th>${texts.value.user}</th>
-            <th>${texts.value.date}</th>
-            <th>${texts.value.time}</th>
-            <th>${texts.value.status}</th>
-            <th>${texts.value.clinician}</th>
-            <th>${texts.value.type}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.map(item => `
-            <tr>
-              <td>${item.user || ''}</td>
-              <td>${formatDate(item.date)}</td>
-              <td>${item.time || ''}</td>
-              <td>${getStatusText(item.status)}</td>
-              <td>${item.clinician || ''}</td>
-              <td>${item.type || ''}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      
-      <div class="footer">
-        <p>MigrantCare 预约管理系统 | 导出时间: ${timestamp}</p>
-      </div>
-    </body>
-    </html>
-  `
-}
-
-const getFilterSummary = () => {
-  const activeFilters = []
-  if (globalSearch.value) activeFilters.push(`全局搜索: ${globalSearch.value}`)
-  Object.entries(filters.value).forEach(([key, value]) => {
-    if (value) {
-      const label = texts.value[key] || key
-      activeFilters.push(`${label}: ${value}`)
+      // 转换数据格式以匹配现有的表格结构
+      appointments.value = result.data.map((apt) => {
+        const userInfo = userMap.get(apt.userId) || {}
+        return {
+          id: apt.id,
+          patientName: userInfo.email || apt.patientName || apt.displayName || userInfo.displayName || '未知用户',
+          email: userInfo.email || '',
+          phone: userInfo.phone || apt.phone || '',
+          appointmentDate:
+            apt.date ||
+            (apt.start ? new Date(apt.start.seconds * 1000).toISOString().split('T')[0] : ''),
+          appointmentTime:
+            apt.time ||
+            (apt.start
+              ? new Date(apt.start.seconds * 1000).toLocaleTimeString('zh-CN', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : ''),
+          service: apt.type || apt.service || '未知服务',
+          status: apt.status || 'pending',
+          doctor: apt.doctor || apt.clinicianName || '未知医生',
+          location: apt.location || '未知地点',
+          notes: apt.notes || '',
+          userId: apt.userId,
+        }
+      })
+    } else {
+      error.value = result.error || '获取预约数据失败'
     }
-  })
-  return activeFilters.length > 0 ? activeFilters.join(', ') : '无'
+  } catch (err) {
+    console.error('加载预约数据失败:', err)
+    error.value = err.message || '加载预约数据失败'
+  } finally {
+    loading.value = false
+  }
 }
 
-let debounceTimeout = null
-const debounce = (fn, delay) => {
-  clearTimeout(debounceTimeout)
-  debounceTimeout = setTimeout(fn, delay)
-}
+// 分页相关
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
 
-onMounted(() => {
-  const { page, sort, dir, search, ...filterParams } = route.query
-  
-  if (page) currentPage.value = parseInt(page)
-  if (sort) sortColumn.value = sort
-  if (dir) sortDirection.value = dir
-  if (search) globalSearch.value = search
-  
-  Object.keys(filterParams).forEach(key => {
-    if (key in filters.value) {
-      filters.value[key] = filterParams[key]
-    }
-  })
+// 排序相关
+const sortField = ref('')
+const sortDirection = ref('asc')
+
+// 全局搜索
+const globalSearch = ref('')
+
+// 计算属性
+const isAllSelected = computed(() => {
+  return selectedItems.value.length === paginatedData.value.length && paginatedData.value.length > 0
 })
-
-watch([currentPage, sortColumn, sortDirection, globalSearch, filters], () => {
-  debounce(() => {
-    const query = {
-      page: currentPage.value,
-      sort: sortColumn.value,
-      dir: sortDirection.value
-    }
-    
-    if (globalSearch.value) query.search = globalSearch.value
-    
-    Object.entries(filters.value).forEach(([key, value]) => {
-      if (value) query[key] = value
-    })
-    
-    router.replace({ query })
-  }, 300)
-}, { deep: true })
 
 const filteredData = computed(() => {
-  let result = [...appointments.value]
-  
+  let data = appointments.value
+
   if (globalSearch.value) {
     const searchTerm = globalSearch.value.toLowerCase()
-    result = result.filter(item => {
-      return Object.entries(item).some(([key, value]) => {
-        if (typeof value === 'string') {
-          return value.toLowerCase().includes(searchTerm)
-        }
-        return false
-      })
+    data = data.filter(
+      (item) =>
+        item.patientName.toLowerCase().includes(searchTerm) ||
+        item.service.toLowerCase().includes(searchTerm) ||
+        item.status.toLowerCase().includes(searchTerm),
+    )
+  }
+
+  if (sortField.value) {
+    data = [...data].sort((a, b) => {
+      let aVal = a[sortField.value]
+      let bVal = b[sortField.value]
+
+      if (sortDirection.value === 'asc') {
+        return aVal > bVal ? 1 : -1
+      } else {
+        return aVal < bVal ? 1 : -1
+      }
     })
   }
-  
-  Object.entries(filters.value).forEach(([key, filterValue]) => {
-    if (filterValue) {
-      if (key === 'dateAfter') {
-        result = result.filter(item => new Date(item.date) >= new Date(filterValue))
-      } else {
-        result = result.filter(item => {
-          const itemValue = item[key]
-          if (typeof itemValue === 'string') {
-            return itemValue.toLowerCase().includes(filterValue.toLowerCase())
-          }
-          return false
-        })
-      }
-    }
-  })
-  
-  result.sort((a, b) => {
-    let aValue = a[sortColumn.value]
-    let bValue = b[sortColumn.value]
-    
-    if (sortColumn.value === 'date') {
-      aValue = new Date(aValue)
-      bValue = new Date(bValue)
-    } else if (typeof aValue === 'string') {
-      aValue = aValue.toLowerCase()
-      bValue = bValue.toLowerCase()
-    }
-    
-    if (aValue < bValue) return sortDirection.value === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortDirection.value === 'asc' ? 1 : -1
-    return 0
-  })
-  
-  return result
+
+  return data
 })
 
 const paginatedData = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
   return filteredData.value.slice(start, end)
 })
 
-const totalPages = computed(() => Math.ceil(filteredData.value.length / itemsPerPage))
-
-const paginationInfo = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage + 1
-  const end = Math.min(currentPage.value * itemsPerPage, filteredData.value.length)
-  const total = filteredData.value.length
-  return { start, end, total }
+const totalPages = computed(() => {
+  return Math.ceil(filteredData.value.length / itemsPerPage.value)
 })
 
-const visiblePages = computed(() => {
+const visiblePageNumbers = computed(() => {
   const pages = []
-  const delta = 2
-  let start = Math.max(1, currentPage.value - delta)
-  let end = Math.min(totalPages.value, currentPage.value + delta)
-  
-  if (currentPage.value <= delta) {
-    end = Math.min(totalPages.value, 2 * delta + 1)
+  const total = totalPages.value
+  const current = currentPage.value
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    if (current <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i)
+      }
+      pages.push('...', total)
+    } else if (current >= total - 3) {
+      pages.push(1, '...')
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      pages.push(1, '...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...', total)
+    }
   }
-  
-  if (currentPage.value + delta >= totalPages.value) {
-    start = Math.max(1, totalPages.value - 2 * delta)
-  }
-  
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
+
   return pages
 })
 
-const sortBy = (column) => {
-  if (sortColumn.value === column) {
+// 方法
+const toggleSelectAll = () => {
+  if (isAllSelected.value) {
+    selectedItems.value = []
+  } else {
+    selectedItems.value = paginatedData.value.map((item) => item.id)
+  }
+}
+
+const clearSelection = () => {
+  selectedItems.value = []
+}
+
+const openBulkEmailModal = () => {
+  showBulkEmailModal.value = true
+}
+
+const closeBulkEmailModal = () => {
+  showBulkEmailModal.value = false
+  clearSelection()
+}
+
+const getSelectedUsers = () => {
+  return appointments.value
+    .filter((appointment) => selectedItems.value.includes(appointment.id))
+    .map((appointment) => ({
+      name: appointment.patientName,
+      email: appointment.email,
+      phone: appointment.phone,
+    }))
+}
+
+const sort = (field) => {
+  if (sortField.value === field) {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
   } else {
-    sortColumn.value = column
-    sortDirection.value = 'desc'
+    sortField.value = field
+    sortDirection.value = 'asc'
   }
-  currentPage.value = 1
 }
 
-const getSortIconClass = (column) => {
-  if (sortColumn.value !== column) return ''
-  return sortDirection.value === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'
-}
-
-const getSortAriaLabel = (column) => {
-  if (sortColumn.value !== column) return 'none'
-  return sortDirection.value === 'asc' ? 'ascending' : 'descending'
+const getSortIconClass = (field) => {
+  if (sortField.value !== field) {
+    return 'fas fa-sort text-muted'
+  }
+  return sortDirection.value === 'asc'
+    ? 'fas fa-sort-up text-primary'
+    : 'fas fa-sort-down text-primary'
 }
 
 const goToPage = (page) => {
@@ -897,153 +511,286 @@ const goToPage = (page) => {
 
 const formatDate = (dateString) => {
   const date = new Date(dateString)
-  return date.toLocaleDateString(props.lang === 'zh' ? 'zh-CN' : 'en-US')
+  return date.toLocaleDateString('zh-CN')
 }
 
 const getStatusBadgeClass = (status) => {
   const classes = {
-    confirmed: 'bg-success',
-    pending: 'bg-warning',
-    cancelled: 'bg-danger',
-    completed: 'bg-info'
+    pending: 'badge bg-warning text-dark',
+    confirmed: 'badge bg-success',
+    completed: 'badge bg-primary',
+    cancelled: 'badge bg-danger',
   }
-  return classes[status] || 'bg-secondary'
+  return classes[status] || 'badge bg-secondary'
 }
 
-// 重复的getStatusText声明已删除
+const getStatusText = (status) => {
+  const statusTexts = {
+    pending: texts.value.pending,
+    confirmed: texts.value.confirmed,
+    completed: texts.value.completed,
+    cancelled: texts.value.cancelled,
+  }
+  return statusTexts[status] || status
+}
 
-const texts = computed(() => {
-  return props.lang === 'zh'
+const editAppointment = (appointment) => {
+  // 编辑预约逻辑
+  console.log('编辑预约:', appointment)
+}
+
+const deleteAppointment = async (appointmentId) => {
+  // 彻底删除预约记录
+  if (confirm('确定要彻底删除这条预约记录吗？此操作不可恢复！')) {
+    try {
+      loading.value = true
+      const token = await authStore.getIdToken()
+      if (!token) {
+        throw new Error('用户未登录')
+      }
+      
+      const result = await deleteAppointmentAPI(appointmentId, token, '管理员彻底删除')
+      if (result.success) {
+        // 从本地数组中移除预约
+        appointments.value = appointments.value.filter((a) => a.id !== appointmentId)
+        console.log('预约记录已彻底删除:', appointmentId)
+        alert('预约记录已彻底删除')
+      } else {
+        throw new Error(result.error || '删除预约失败')
+      }
+    } catch (err) {
+      console.error('删除预约失败:', err)
+      error.value = err.message || '删除预约失败，请重试'
+      alert('删除失败: ' + error.value)
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+const exportToCSV = () => {
+  try {
+    isExporting.value = true
+    const csvContent = generateCSV()
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
+    const filename = `appointments_${timestamp}.csv`
+    downloadFile(csvContent, filename, 'text/csv;charset=utf-8')
+  } catch (error) {
+    console.error('Export to CSV failed:', error)
+    alert(texts.value.exportError || '导出失败，请重试')
+  } finally {
+    isExporting.value = false
+  }
+}
+
+const exportToPDF = async () => {
+  try {
+    isExporting.value = true
+    await generatePDFOnFrontend()
+  } catch (error) {
+    console.error('Export to PDF failed:', error)
+    alert(texts.value.exportError || '导出失败，请重试')
+  } finally {
+    isExporting.value = false
+  }
+}
+
+const generateCSV = () => {
+  const headers = [
+    'ID',
+    texts.value.patientName,
+    texts.value.appointmentDate,
+    texts.value.appointmentTime,
+    texts.value.service,
+    texts.value.status
+  ]
+  
+  const csvRows = [headers.join(',')]
+  
+  filteredData.value.forEach(appointment => {
+    const row = [
+      appointment.id,
+      `"${appointment.patientName.replace(/"/g, '""')}"`,
+      appointment.appointmentDate,
+      appointment.appointmentTime,
+      `"${appointment.service.replace(/"/g, '""')}"`,
+      `"${getStatusText(appointment.status).replace(/"/g, '""')}"`
+    ]
+    csvRows.push(row.join(','))
+  })
+  
+  // Add UTF-8 BOM for Excel compatibility
+  const BOM = '\uFEFF'
+  return BOM + csvRows.join('\n')
+}
+
+const downloadFile = (content, filename, mimeType) => {
+  const blob = new Blob([content], { type: mimeType })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const loadJsPDF = async () => {
+  const { jsPDF } = await import('jspdf')
+  return jsPDF
+}
+
+const generatePDFOnFrontend = async () => {
+  try {
+    const jsPDF = await loadJsPDF()
+    const doc = new jsPDF()
+    
+    // Add title
+    doc.setFontSize(16)
+    doc.text(texts.value.appointmentManagement, 20, 20)
+    
+    // Add export info
+    doc.setFontSize(10)
+    const exportTime = new Date().toLocaleString()
+    doc.text(`${texts.value.exportTime || '导出时间'}: ${exportTime}`, 20, 30)
+    
+    // Add table headers
+    let yPosition = 50
+    doc.setFontSize(12)
+    const headers = ['ID', texts.value.patientName, texts.value.appointmentDate, texts.value.appointmentTime, texts.value.service, texts.value.status]
+    doc.text(headers.join('  |  '), 20, yPosition)
+    
+    // Add data rows
+    yPosition += 10
+    filteredData.value.forEach((appointment, index) => {
+      if (yPosition > 270) {
+        doc.addPage()
+        yPosition = 20
+      }
+      
+      const row = [
+        appointment.id,
+        appointment.patientName.substring(0, 15) + (appointment.patientName.length > 15 ? '...' : ''),
+        appointment.appointmentDate,
+        appointment.appointmentTime,
+        appointment.service.substring(0, 10) + (appointment.service.length > 10 ? '...' : ''),
+        getStatusText(appointment.status)
+      ]
+      
+      doc.setFontSize(10)
+      doc.text(row.join('  |  '), 20, yPosition)
+      yPosition += 8
+    })
+    
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16)
+    const filename = `appointments_${timestamp}.pdf`
+    doc.save(filename)
+  } catch (error) {
+    console.error('PDF generation failed:', error)
+    throw error
+  }
+}
+
+// 多语言文本
+const texts = computed(() =>
+  props.lang === 'zh'
     ? {
-        appointmentTable: '预约管理表格',
-        searchAllFields: '搜索所有字段',
+        appointmentManagement: '预约管理',
+        bulkEmail: '批量邮件',
+        clearSelection: '清除选择',
+        exportCSV: '导出CSV',
+        exportPDF: '导出PDF',
+        globalSearch: '全局搜索...',
         patientName: '患者姓名',
-        filterByPatient: '按患者姓名筛选',
-        doctorName: '医生姓名',
-        filterByDoctor: '按医生姓名筛选',
-        type: '类型',
-        filterByType: '按类型筛选',
+        appointmentDate: '预约日期',
+        appointmentTime: '预约时间',
+        service: '服务类型',
         status: '状态',
-        filterByStatus: '按状态筛选',
-        dateAfter: '日期筛选',
-        selectDate: '选择日期',
-        clearFilters: '清除筛选',
-        date: '日期',
-        time: '时间',
-        notes: '备注',
         actions: '操作',
-        general: '常规检查',
-        specialist: '专科咨询',
-        emergency: '紧急就诊',
-        confirmed: '已确认',
+        noAppointments: '暂无预约记录',
+        selectedUsers: '位用户',
+        close: '关闭',
         pending: '待确认',
-        cancelled: '已取消',
+        confirmed: '已确认',
         completed: '已完成',
-        edit: '编辑',
-        view: '查看',
-        cancel: '取消',
-        showing: '显示',
-        to: '至',
-        of: '共',
-        entries: '条记录',
-        previous: '上一页',
-        next: '下一页',
-        noResults: '暂无数据',
-        viewReports: '查看报表',
-        appointmentReports: '预约报表',
-        startDate: '开始日期',
-        endDate: '结束日期',
-        generateReport: '生成报表',
-        reset: '重置',
-        totalAppointments: '总预约数',
-        completedAppointments: '已完成',
-        pendingAppointments: '待处理',
-        cancelledAppointments: '已取消',
-        statusDistribution: '状态分布',
-        topClinics: '热门诊所',
-        reportError: '报表加载失败',
-        user: '用户',
-        filterByUser: '按用户筛选',
-        clinician: '医生',
-        filterByClinician: '按医生筛选',
-        all: '全部',
-        scheduled: '已预约',
-        exportCSV: '导出 CSV',
-        exportPDF: '导出 PDF',
+        cancelled: '已取消',
+        confirmDelete: '确定要删除这个预约吗？',
         exportError: '导出失败，请重试',
-        largeExportNotification: '数据量较大，正在后台生成PDF。完成后将发送邮件通知。',
-        appointmentList: '预约列表'
+        exportTime: '导出时间',
       }
     : {
-        appointmentTable: 'Appointment Management Table',
-        searchAllFields: 'Search all fields',
-        patientName: 'Patient Name',
-        filterByPatient: 'Filter by patient name',
-        doctorName: 'Doctor Name',
-        filterByDoctor: 'Filter by doctor name',
-        type: 'Type',
-        filterByType: 'Filter by type',
-        status: 'Status',
-        filterByStatus: 'Filter by status',
-        dateAfter: 'Date Filter',
-        selectDate: 'Select date',
-        clearFilters: 'Clear Filters',
-        date: 'Date',
-        time: 'Time',
-        notes: 'Notes',
-        actions: 'Actions',
-        general: 'General Checkup',
-        specialist: 'Specialist Consultation',
-        emergency: 'Emergency Visit',
-        confirmed: 'Confirmed',
-        pending: 'Pending',
-        cancelled: 'Cancelled',
-        completed: 'Completed',
-        edit: 'Edit',
-        view: 'View',
-        cancel: 'Cancel',
-        showing: 'Showing',
-        to: 'to',
-        of: 'of',
-        entries: 'entries',
-        previous: 'Previous',
-        next: 'Next',
-        noResults: 'No results found',
-        viewReports: 'View Reports',
-        appointmentReports: 'Appointment Reports',
-        startDate: 'Start Date',
-        endDate: 'End Date',
-        generateReport: 'Generate Report',
-        reset: 'Reset',
-        totalAppointments: 'Total Appointments',
-        completedAppointments: 'Completed',
-        pendingAppointments: 'Pending',
-        cancelledAppointments: 'Cancelled',
-        statusDistribution: 'Status Distribution',
-        topClinics: 'Top Clinics',
-        reportError: 'Report loading failed',
-        user: 'User',
-        filterByUser: 'Filter by user',
-        clinician: 'Clinician',
-        filterByClinician: 'Filter by clinician',
-        all: 'All',
-        scheduled: 'Scheduled',
+        appointmentManagement: 'Appointment Management',
+        bulkEmail: 'Bulk Email',
+        clearSelection: 'Clear Selection',
         exportCSV: 'Export CSV',
         exportPDF: 'Export PDF',
+        globalSearch: 'Global search...',
+        patientName: 'Patient Name',
+        appointmentDate: 'Appointment Date',
+        appointmentTime: 'Appointment Time',
+        service: 'Service',
+        status: 'Status',
+        actions: 'Actions',
+        noAppointments: 'No appointments found',
+        selectedUsers: 'users',
+        close: 'Close',
+        pending: 'Pending',
+        confirmed: 'Confirmed',
+        completed: 'Completed',
+        cancelled: 'Cancelled',
+        confirmDelete: 'Are you sure you want to delete this appointment?',
         exportError: 'Export failed, please try again',
-        largeExportNotification: 'Large dataset detected. PDF is being generated in background. You will receive an email notification when ready.',
-        appointmentList: 'Appointment List'
-      }
+        exportTime: 'Export Time',
+      },
+)
+
+// 监听路由变化
+watch(
+  () => route.query,
+  () => {
+    // 处理路由查询参数变化
+  },
+  { immediate: true },
+)
+
+// 组件挂载时的初始化
+onMounted(() => {
+  // 加载预约数据
+  loadAppointments()
 })
 </script>
 
 <style scoped>
 .data-table-container {
   background-color: white;
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-container {
+  max-width: 400px;
 }
 
 .sortable {
@@ -1072,62 +819,22 @@ const texts = computed(() => {
   outline-offset: -2px;
 }
 
-/* 报表相关样式 */
-.reports-section {
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  padding: 1.5rem;
-  height: 100%;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.progress-stacked {
-  display: flex;
-  height: 2rem;
-  background-color: #e9ecef;
-  border-radius: 0.375rem;
-  overflow: hidden;
-}
-
-.progress-stacked .progress-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 500;
-  font-size: 0.875rem;
-  transition: width 0.6s ease;
-}
-
-.reports-results h6 {
-  color: #495057;
-  font-weight: 600;
-  margin-bottom: 1rem;
-}
-
 @media (max-width: 768px) {
   .data-table-container {
     padding: 1rem;
   }
-  
-  /* 在小屏幕上将表格转换为卡片视图 */
+
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .export-buttons {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
   .table-responsive {
     overflow-x: auto;
   }

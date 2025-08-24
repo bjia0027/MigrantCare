@@ -1,12 +1,13 @@
 <template>
   <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container">
-      <a class="navbar-brand d-flex align-items-center" href="#" @click="navigateTo('home')">
+      <!-- 品牌：改为 RouterLink 到首页 -->
+      <RouterLink class="navbar-brand d-flex align-items-center" to="/">
         <div class="logo-icon">
           <i class="fas fa-heart text-primary me-2"></i>
         </div>
         <span class="fw-bold text-primary">MigrantCare</span>
-      </a>
+      </RouterLink>
 
       <button
         class="navbar-toggler"
@@ -23,87 +24,50 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item">
-            <a
-              class="nav-link"
-              :class="{ active: currentPage === 'health' }"
-              href="#"
-              @click="navigateTo('health')"
-            >
+            <RouterLink class="nav-link" :class="{ active: currentPage === 'health' }" to="/health">
               {{ texts.health }}
-            </a>
+            </RouterLink>
           </li>
           <li class="nav-item">
-            <a
+            <RouterLink
               class="nav-link"
               :class="{ active: currentPage === 'resources' }"
-              href="#"
-              @click="navigateTo('resources')"
+              to="/resources"
             >
               {{ texts.resources }}
-            </a>
+            </RouterLink>
           </li>
           <li class="nav-item">
-            <a
-              class="nav-link"
-              :class="{ active: currentPage === 'forum' }"
-              href="#"
-              @click="navigateTo('forum')"
-            >
+            <RouterLink class="nav-link" :class="{ active: currentPage === 'forum' }" to="/forum">
               {{ texts.forum }}
-            </a>
+            </RouterLink>
           </li>
           <li class="nav-item">
-            <a
+            <RouterLink
               class="nav-link"
               :class="{ active: currentPage === 'appointments' }"
-              href="#"
-              @click="navigateTo('appointments')"
+              to="/appointments"
             >
               {{ texts.appointments }}
-            </a>
-          </li>
-          
-          <li class="nav-item">
-            <a
-              class="nav-link"
-              :class="{ active: currentPage === 'tables' }"
-              href="#"
-              @click="navigateTo('tables')"
-            >
-              {{ texts.tables }}
-            </a>
-          </li>
-          
-          <li class="nav-item">
-            <a
-              class="nav-link"
-              :class="{ active: currentPage === 'deployment' }"
-              href="#"
-              @click="navigateTo('deployment')"
-            >
-              {{ texts.deployment }}
-            </a>
+            </RouterLink>
           </li>
 
           <li v-if="isAdmin" class="nav-item">
-            <a
+            <RouterLink
               class="nav-link"
-              :class="{ active: currentPage === 'admin' }"
-              href="#"
-              @click="navigateTo('admin')"
+              :class="{ active: currentPage === 'tables' }"
+              to="/tables"
             >
-              {{ texts.admin }}
-            </a>
+              {{ texts.tables }}
+            </RouterLink>
           </li>
-          <li v-if="isUser" class="nav-item">
-            <a
-              class="nav-link"
-              :class="{ active: currentPage === 'userManagement' }"
-              href="#"
-              @click="navigateTo('userManagement')"
-            >
+          
+
+          <!-- 用户管理只对管理员显示，并跳转到用户管理页面 -->
+          <li v-if="isAdmin" class="nav-item">
+            <RouterLink class="nav-link" :class="{ active: currentPage === 'users' }" to="/users">
               {{ texts.userManagement }}
-            </a>
+            </RouterLink>
           </li>
         </ul>
 
@@ -128,12 +92,12 @@
           </div>
 
           <div v-if="!isLoggedIn" class="auth-buttons">
-            <button class="btn btn-outline-primary me-2" @click="navigateTo('login')">
+            <RouterLink class="btn btn-outline-primary me-2" to="/login">
               {{ texts.login }}
-            </button>
-            <button class="btn btn-primary" @click="navigateTo('register')">
+            </RouterLink>
+            <RouterLink class="btn btn-primary" to="/register">
               {{ texts.register }}
-            </button>
+            </RouterLink>
           </div>
 
           <div v-else class="dropdown">
@@ -169,30 +133,26 @@
                 </div>
               </li>
               <li><hr class="dropdown-divider" /></li>
+
               <li v-if="isAdmin">
-                <a class="dropdown-item" href="#" @click="navigateTo('admin')">
-                  {{ texts.admin }}
-                </a>
-              </li>
-              <li v-if="isAdmin">
-                <a class="dropdown-item" href="#" @click="navigateTo('user-management')">
+                <RouterLink class="dropdown-item" to="/users">
                   {{ texts.userManagement }}
-                </a>
+                </RouterLink>
               </li>
               <li v-if="isAdmin"><hr class="dropdown-divider" /></li>
               <li>
-                <a class="dropdown-item" href="#" @click="navigateTo('profile')">
+                <a class="dropdown-item" href="#" @click.prevent="emit('toggle-profile')">
                   {{ texts.profile }}
                 </a>
               </li>
               <li>
-                <a class="dropdown-item" href="#" @click="navigateTo('settings')">
+                <a class="dropdown-item" href="#" @click.prevent="emit('toggle-settings')">
                   {{ texts.settings }}
                 </a>
               </li>
               <li><hr class="dropdown-divider" /></li>
               <li>
-                <a class="dropdown-item text-danger" href="#" @click="logout">
+                <a class="dropdown-item text-danger" href="#" @click.prevent="logout">
                   {{ texts.logout }}
                 </a>
               </li>
@@ -205,9 +165,10 @@
 </template>
 
 <script setup>
-import { defineEmits, computed } from 'vue'
+import { computed, onMounted, nextTick } from 'vue'
+import { Dropdown } from 'bootstrap'
 
-const emit = defineEmits(['navigate', 'login', 'logout', 'langChange'])
+const emit = defineEmits(['navigate', 'logout', 'langChange', 'toggle-profile', 'toggle-settings'])
 
 const props = defineProps({
   currentPage: {
@@ -286,7 +247,9 @@ const navigateTo = (page) => {
 }
 
 const logout = () => {
+  console.log('NavigationBar: logout method called')
   emit('logout')
+  console.log('NavigationBar: logout event emitted')
 }
 
 const switchLang = (newLang) => {
@@ -295,11 +258,30 @@ const switchLang = (newLang) => {
   emit('langChange', newLang)
   console.log('NavigationBar: langChange event emitted with:', newLang)
 }
+
+// 初始化Bootstrap下拉菜单
+onMounted(() => {
+  nextTick(() => {
+    try {
+      // 初始化所有下拉菜单
+      const dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]')
+      dropdownElements.forEach(element => {
+        new Dropdown(element)
+      })
+      console.log('NavigationBar: Bootstrap dropdowns initialized')
+    } catch (error) {
+      console.error('NavigationBar: Failed to initialize dropdowns:', error)
+    }
+  })
+})
 </script>
 
 <style scoped>
 .navbar {
   border-bottom: 2px solid #e9ecef;
+  position: sticky;
+  top: 0;
+  z-index: 3000; /* 确保位于任何覆盖层之上，可点击 */
 }
 
 .navbar-brand {
@@ -388,6 +370,7 @@ const switchLang = (newLang) => {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
   border-radius: 0.5rem;
   margin-top: 0.5rem;
+  z-index: 3001; /* 确保下拉菜单显示在导航栏之上 */
 }
 
 .dropdown-item {

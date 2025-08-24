@@ -91,6 +91,12 @@ const navigateTo = (page) => {
   router.push(`/${page}`)
 }
 
+// 新增：登出后跳转到登录页，避免停留在受保护路由
+const handleLogout = async () => {
+  await authStore.logout()
+  router.push('/login')
+}
+
 onMounted(() => {
   authStore.initAuthListener()
 })
@@ -170,14 +176,14 @@ const texts = computed(() => {
       :is-user="isUser"
       :lang="lang"
       @navigate="navigateTo"
-      @logout="authStore.logout"
+      @logout="handleLogout"
       @toggle-profile="showProfile = !showProfile"
       @toggle-settings="showSettings = !showSettings"
       @langChange="handleLangChange"
     />
 
     <main class="main-content">
-      <router-view :lang="lang" />
+      <router-view :lang="lang" :current-user="authStore.user" />
     </main>
 
     <div v-if="showProfile" class="modal-overlay" @click="showProfile = false">

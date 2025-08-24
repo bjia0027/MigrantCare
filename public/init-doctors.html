@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Initialize Doctors</title>
+  </head>
+  <body>
+    <h1>Initialize Doctors Data</h1>
+    <button id="initBtn">Initialize Doctors</button>
+    <div id="status"></div>
+
+    <script type="module">
+      import { ClinicianAPI } from '../src/api/clinicianAPI.js'
+      import { ClinicianModel } from '../src/models/appointmentModels.js'
+
+      const initialDoctors = [
+        {
+          name: 'Dr. Sarah Smith',
+          email: 'sarah.smith@migrantcare.com',
+          phone: '+61-3-9876-5432',
+          timezone: 'Australia/Melbourne',
+          businessHours: {
+            monday: { start: '09:00', end: '17:00', enabled: true },
+            tuesday: { start: '09:00', end: '17:00', enabled: true },
+            wednesday: { start: '09:00', end: '17:00', enabled: true },
+            thursday: { start: '09:00', end: '17:00', enabled: true },
+            friday: { start: '09:00', end: '17:00', enabled: true },
+            saturday: { start: '09:00', end: '13:00', enabled: false },
+            sunday: { start: '09:00', end: '13:00', enabled: false },
+          },
+          slotMins: 60,
+          specialties: ['General Practice', 'Family Medicine'],
+          languages: ['English', 'Mandarin'],
+          qualifications: 'MBBS, FRACGP',
+          experience: 15,
+          bio: 'Dr. Smith specializes in family medicine and has extensive experience working with migrant communities.',
+          isActive: true,
+        },
+        {
+          name: 'Dr. Michael Johnson',
+          email: 'michael.johnson@migrantcare.com',
+          phone: '+61-3-9876-5433',
+          timezone: 'Australia/Melbourne',
+          businessHours: {
+            monday: { start: '08:00', end: '16:00', enabled: true },
+            tuesday: { start: '08:00', end: '16:00', enabled: true },
+            wednesday: { start: '08:00', end: '16:00', enabled: true },
+            thursday: { start: '08:00', end: '16:00', enabled: true },
+            friday: { start: '08:00', end: '16:00', enabled: true },
+            saturday: { start: '09:00', end: '12:00', enabled: true },
+            sunday: { start: '09:00', end: '12:00', enabled: false },
+          },
+          slotMins: 30,
+          specialties: ['Internal Medicine', 'Cardiology'],
+          languages: ['English', 'Spanish', 'Arabic'],
+          qualifications: 'MBBS, FRACP',
+          experience: 12,
+          bio: 'Dr. Johnson is a cardiologist with a passion for preventive medicine and community health.',
+          isActive: true,
+        },
+        {
+          name: 'Dr. Priya Patel',
+          email: 'priya.patel@migrantcare.com',
+          phone: '+61-3-9876-5434',
+          timezone: 'Australia/Melbourne',
+          businessHours: {
+            monday: { start: '10:00', end: '18:00', enabled: true },
+            tuesday: { start: '10:00', end: '18:00', enabled: true },
+            wednesday: { start: '10:00', end: '18:00', enabled: true },
+            thursday: { start: '10:00', end: '18:00', enabled: true },
+            friday: { start: '10:00', end: '18:00', enabled: true },
+            saturday: { start: '08:00', end: '14:00', enabled: true },
+            sunday: { start: '08:00', end: '14:00', enabled: false },
+          },
+          slotMins: 45,
+          specialties: ['Pediatrics', "Women's Health"],
+          languages: ['English', 'Hindi', 'Gujarati'],
+          qualifications: 'MBBS, FRACP (Paediatrics)',
+          experience: 8,
+          bio: "Dr. Patel specializes in pediatric care and women's health, with a focus on culturally sensitive healthcare.",
+          isActive: true,
+        },
+      ]
+
+      async function initializeDoctors() {
+        const statusDiv = document.getElementById('status')
+        statusDiv.innerHTML = 'Initializing doctors...'
+
+        try {
+          console.log('开始初始化医生数据...')
+
+          for (const doctorData of initialDoctors) {
+            try {
+              // 检查医生是否已存在
+              const existingResult = await ClinicianAPI.getAllClinicians()
+              const exists =
+                existingResult.success &&
+                existingResult.data.some((doc) => doc.email === doctorData.email)
+
+              if (!exists) {
+                // 创建新医生
+                const result = await ClinicianAPI.createClinician(doctorData, 'admin-token')
+                if (result.success) {
+                  console.log(`已创建医生: ${doctorData.name}`)
+                  statusDiv.innerHTML += `<br>已创建医生: ${doctorData.name}`
+                } else {
+                  console.error(`创建医生失败: ${doctorData.name}`, result.error)
+                  statusDiv.innerHTML += `<br>创建医生失败: ${doctorData.name} - ${result.error}`
+                }
+              } else {
+                console.log(`医生已存在: ${doctorData.name}`)
+                statusDiv.innerHTML += `<br>医生已存在: ${doctorData.name}`
+              }
+            } catch (error) {
+              console.error(`创建医生 ${doctorData.name} 时出错:`, error)
+              statusDiv.innerHTML += `<br>创建医生 ${doctorData.name} 时出错: ${error.message}`
+            }
+          }
+
+          statusDiv.innerHTML += '<br><strong>医生数据初始化完成</strong>'
+          console.log('医生数据初始化完成')
+        } catch (error) {
+          console.error('初始化医生数据时出错:', error)
+          statusDiv.innerHTML += `<br><strong>初始化失败: ${error.message}</strong>`
+        }
+      }
+
+      document.getElementById('initBtn').addEventListener('click', initializeDoctors)
+      // 页面加载后自动执行初始化，避免手动点击
+      window.addEventListener('load', () => {
+        try { initializeDoctors() } catch (e) { console.error('自动初始化失败:', e) }
+      })
+    </script>
+  </body>
+</html>

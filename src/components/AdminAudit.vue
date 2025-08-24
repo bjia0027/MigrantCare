@@ -6,8 +6,8 @@
         {{ texts.auditLog }}
       </h2>
       <div class="d-flex gap-2">
-        <button 
-          class="btn btn-outline-primary" 
+        <button
+          class="btn btn-outline-primary"
           @click="refreshLogs"
           :disabled="isLoading"
         >
@@ -15,8 +15,8 @@
           <i v-else class="fas fa-sync-alt me-2"></i>
           {{ texts.refresh }}
         </button>
-        <button 
-          class="btn btn-outline-secondary" 
+        <button
+          class="btn btn-outline-secondary"
           @click="showFilters = !showFilters"
         >
           <i class="fas fa-filter me-2"></i>
@@ -25,7 +25,6 @@
       </div>
     </div>
 
-    <!-- 过滤器区域 -->
     <div v-if="showFilters" class="filters-section mb-4">
       <div class="card">
         <div class="card-header bg-light">
@@ -77,16 +76,16 @@
             </div>
           </div>
           <div class="d-flex gap-2">
-            <button 
-              class="btn btn-primary" 
+            <button
+              class="btn btn-primary"
               @click="applyFilters"
               :disabled="isLoading"
             >
               <i class="fas fa-search me-2"></i>
               {{ texts.applyFilters }}
             </button>
-            <button 
-              class="btn btn-outline-secondary" 
+            <button
+              class="btn btn-outline-secondary"
               @click="resetFilters"
             >
               <i class="fas fa-times me-2"></i>
@@ -97,7 +96,6 @@
       </div>
     </div>
 
-    <!-- 统计信息 -->
     <div v-if="auditStats" class="stats-section mb-4">
       <div class="row">
         <div class="col-md-3 mb-3">
@@ -127,7 +125,6 @@
       </div>
     </div>
 
-    <!-- 审计日志表格 -->
     <div class="audit-logs-table">
       <div class="card">
         <div class="card-header bg-dark text-white">
@@ -140,7 +137,7 @@
           </h6>
         </div>
         <div class="card-body p-0">
-          <!-- 加载状态 -->
+
           <div v-if="isLoading" class="text-center p-4">
             <div class="spinner-border text-primary" role="status">
               <span class="visually-hidden">{{ texts.loading }}</span>
@@ -148,19 +145,18 @@
             <p class="mt-2 text-muted">{{ texts.loadingLogs }}</p>
           </div>
 
-          <!-- 错误状态 -->
+
           <div v-else-if="error" class="alert alert-danger m-3">
             <i class="fas fa-exclamation-triangle me-2"></i>
             {{ texts.loadError }}: {{ error }}
           </div>
 
-          <!-- 无数据 -->
+
           <div v-else-if="auditLogs.length === 0" class="text-center p-4">
             <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
             <p class="text-muted">{{ texts.noLogs }}</p>
           </div>
 
-          <!-- 审计日志列表 -->
           <div v-else class="table-responsive">
             <table class="table table-hover mb-0">
               <thead class="table-light">
@@ -195,8 +191,8 @@
                   <td>
                     <div class="details-cell">
                       <div v-if="log.details && Object.keys(log.details).length > 0">
-                        <button 
-                          class="btn btn-sm btn-outline-info" 
+                        <button
+                          class="btn btn-sm btn-outline-info"
                           @click="showDetails(log)"
                         >
                           <i class="fas fa-eye me-1"></i>
@@ -220,7 +216,6 @@
       </div>
     </div>
 
-    <!-- 分页 -->
     <div v-if="auditLogs.length > 0" class="pagination-section mt-4">
       <nav aria-label="Audit logs pagination">
         <ul class="pagination justify-content-center">
@@ -241,7 +236,6 @@
       </nav>
     </div>
 
-    <!-- 详情模态框 -->
     <div v-if="selectedLog" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -302,7 +296,6 @@ const props = defineProps({
   }
 })
 
-// 响应式数据
 const isLoading = ref(false)
 const error = ref('')
 const auditLogs = ref([])
@@ -312,7 +305,6 @@ const selectedLog = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(50)
 
-// 过滤器
 const filters = ref({
   startDate: '',
   endDate: '',
@@ -320,7 +312,6 @@ const filters = ref({
   userId: ''
 })
 
-// 多语言文本
 const texts = computed(() => {
   return props.lang === 'zh'
     ? {
@@ -409,35 +400,31 @@ const texts = computed(() => {
       }
 })
 
-// 方法
 const loadAuditLogs = async () => {
   isLoading.value = true
   error.value = ''
-  
+
   try {
     const params = {
       limit: pageSize.value,
       offset: (currentPage.value - 1) * pageSize.value,
       ...filters.value
     }
-    
-    // 移除空值
+
     Object.keys(params).forEach(key => {
       if (params[key] === '' || params[key] === null || params[key] === undefined) {
         delete params[key]
       }
     })
-    
+
     const response = await apiClient.getAuditLog(params)
     auditLogs.value = response.data || []
-    
-    // 计算统计信息
+
     calculateStats()
   } catch (err) {
     console.error('Failed to load audit logs:', err)
     error.value = err.message || 'Failed to load audit logs'
-    
-    // 使用模拟数据作为后备
+
     auditLogs.value = [
       {
         id: '1',
@@ -468,15 +455,15 @@ const loadAuditLogs = async () => {
 
 const calculateStats = () => {
   const today = new Date().toDateString()
-  const todayLogs = auditLogs.value.filter(log => 
+  const todayLogs = auditLogs.value.filter(log =>
     new Date(log.timestamp).toDateString() === today
   ).length
-  
+
   const uniqueUsers = new Set(auditLogs.value.map(log => log.uid)).size
-  const criticalEvents = auditLogs.value.filter(log => 
+  const criticalEvents = auditLogs.value.filter(log =>
     ['data_change', 'data_export'].includes(log.action)
   ).length
-  
+
   auditStats.value = {
     totalLogs: auditLogs.value.length,
     todayLogs,
@@ -628,11 +615,11 @@ onMounted(() => {
   .admin-audit-container {
     padding: 15px;
   }
-  
+
   .table-responsive {
     font-size: 0.875rem;
   }
-  
+
   .stat-number {
     font-size: 1.5rem;
   }

@@ -46,7 +46,7 @@
       </div>
 
       <!-- 发布新帖 -->
-      <div class="row mb-4" v-if="currentUser && currentUser.username">
+      <div class="row mb-4" v-if="currentUser && (currentUser.username || currentUser.displayName || currentUser.email)">
         <div class="col-12">
           <div class="new-post-card">
             <h5>{{ texts.shareThoughts }}</h5>
@@ -132,7 +132,7 @@
 
                 <!-- 评分组件 -->
                 <RatingComponent
-                  v-if="currentUser && currentUser.username"
+                  v-if="currentUser && (currentUser.username || currentUser.displayName || currentUser.email)"
                   :target-id="`post-${post.id}`"
                   :target-type="'forum-post'"
                   :interactive="true"
@@ -146,7 +146,7 @@
                     class="btn btn-sm"
                     :class="post.liked ? 'btn-danger' : 'btn-outline-danger'"
                     @click="toggleLike(post.id)"
-                    v-if="currentUser && currentUser.username"
+                    v-if="currentUser && (currentUser.username || currentUser.displayName || currentUser.email)"
                   >
                     ♥ {{ post.likes }}
                   </button>
@@ -183,12 +183,12 @@
                 </div>
 
                 <!-- 添加新评论表单 -->
-                <div v-if="currentUser && currentUser.username" class="add-comment-form">
+                <div v-if="currentUser && (currentUser.username || currentUser.displayName || currentUser.email)" class="add-comment-form">
                   <h6 class="mb-2">{{ texts.addComment }}</h6>
                   <div class="d-flex">
                     <div class="comment-avatar me-2">
                       <div class="avatar-circle-small text-primary">
-                        {{ currentUser.username.charAt(0) }}
+                        {{ getUserDisplayName(currentUser).charAt(0) }}
                       </div>
                     </div>
                     <div class="comment-input-area flex-grow-1">
@@ -446,6 +446,11 @@ const texts = computed(() => {
   return translations[props.lang] || translations.zh
 })
 
+// 辅助函数
+const getUserDisplayName = (user) => {
+  return user?.username || user?.displayName || user?.email || 'Guest'
+}
+
 // 功能函数
 const submitPost = () => {
   if (newPost.value.title && newPost.value.content && newPost.value.category) {
@@ -454,7 +459,7 @@ const submitPost = () => {
       title: filterContent(newPost.value.title),
       content: filterContent(newPost.value.content),
       category: newPost.value.category,
-      author: props.currentUser.username,
+      author: getUserDisplayName(props.currentUser),
       createdAt: new Date(),
       likes: 0,
       replies: [],
@@ -502,7 +507,7 @@ const submitComment = (postId) => {
   if (post && newComments.value[postId] && newComments.value[postId].trim() !== '') {
     const newReply = {
       id: post.replies.length + 1,
-      author: props.currentUser.username,
+      author: getUserDisplayName(props.currentUser),
       content: filterContent(newComments.value[postId]),
       createdAt: new Date(),
     }
