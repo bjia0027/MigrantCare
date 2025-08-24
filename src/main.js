@@ -1,5 +1,3 @@
-//import './assets/main.css'
-
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -17,7 +15,6 @@ const router = createRouter({
   routes: [
     { path: '/', component: () => import('./components/HealthInfo.vue') },
     { path: '/health', component: () => import('./components/HealthInfo.vue') },
-    { path: '/test', component: () => import('./components/TestPage.vue') },
     { path: '/login', component: () => import('./components/LoginForm.vue') },
     { path: '/register', component: () => import('./components/LoginForm.vue') },
     {

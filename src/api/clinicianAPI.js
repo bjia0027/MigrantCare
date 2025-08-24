@@ -27,7 +27,7 @@ export class ClinicianAPI {
   static async verifyAdminAccess(userToken) {
     try {
       // 开发环境种子数据专用后门：仅在本地开发时允许使用固定令牌跳过登录与管理员校验
-      // 注意：此分支不会在生产环境生效，且仅用于 init-doctors.html 等开发场景
+  
       if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
         if (userToken === 'admin-token') {
           return { uid: 'dev-seeder', email: 'dev-admin@migrantcare.local', role: 'admin' }
